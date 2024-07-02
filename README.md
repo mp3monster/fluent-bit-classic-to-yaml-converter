@@ -27,10 +27,8 @@ The utility reads the classic file line by line and maps each line into a struct
 
 There are some functional gaps/needs that need to be addressed, and the plan is to do so quickly:
 
-- Comments need to be carried over
 - Docker container so the utility can be run without a local Java install
 - Test configurations published
-- Flag the use of inclusions  (YAML inclusions are not as flexible)
 - Add Javadoc
 
 #### Gaps & features (to be addressed)
