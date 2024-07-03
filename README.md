@@ -36,7 +36,8 @@ There are some functional gaps/needs that need to be addressed, and the plan is 
 Additions to be developed for the longer term:
 
 - Regression test pack  (Docker image?)
-- Write the output in the same folder as the source file
+
+  
 
 #### Differences unlikely to be addressed
 
@@ -76,6 +77,10 @@ The generated file at the moment is placed in the local filesystem.
 #### Logging
 
 To keep things very simple logging is controlled directly to std out. But we can control whether the console output includes debug messages.  This is done by setting an environment variable of `FLB_CONVERT_DEBUG` with the value `true`.
+
+#### Reporting Logged Details to File
+
+We can ask the converter to write the output information to a file (the output filename with a postfix of `.report`). This can be enabled with the environment variable `FLB_REPORT_FILE` set to a value of `true`.
 
 ## Supporting this project
 
