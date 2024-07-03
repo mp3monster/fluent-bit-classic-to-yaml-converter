@@ -410,19 +410,20 @@ class FLBConverter {
 
   private static String getPathPrefix() {
     String pathPrefix = System.getenv("FLB_PATH_PREFIX");
-    if (pathPrefix == null) {
+    pathPrefix = pathPrefix.trim();
+    if ((pathPrefix == null) || (pathPrefix.length() == 0)) {
       pathPrefix = "";
     } else {
-      pathPrefix = pathPrefix.trim();
       if (!pathPrefix.endsWith("\\")) {
         pathPrefix = pathPrefix + "\\";
       }
+      debug("setting path prefix to:" + pathPrefix);
     }
     return pathPrefix;
   }
 
   public static void main(String[] args) {
-    info("Fluent B it Converter starting ,,,");
+    info("Fluent Bit Converter starting ...");
     checkDebug();
     String inFileName = null;
     try {
@@ -439,7 +440,7 @@ class FLBConverter {
         inFileName = br.readLine().trim();
         debug("Conversion list file points to:" + inFileName);
       } else {
-        debug("No Conversion list - " + conversionList.getPath());
+        debug("No conversion list, looked for - " + conversionList.getPath());
       }
 
       if ((inFileName == null) && (args != null) && (args.length != 0)) {
