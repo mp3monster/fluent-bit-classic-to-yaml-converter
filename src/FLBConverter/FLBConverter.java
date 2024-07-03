@@ -408,7 +408,21 @@ class FLBConverter {
     return logToFile;
   }
 
+  private static String getPathPrefix() {
+    String pathPrefix = System.getenv("FLB_PATH_PREFIX");
+    if (pathPrefix == null) {
+      pathPrefix = "";
+    } else {
+      pathPrefix = pathPrefix.trim();
+      if (!pathPrefix.endsWith("\\")) {
+        pathPrefix = pathPrefix + "\\";
+      }
+    }
+    return pathPrefix;
+  }
+
   public static void main(String[] args) {
+    info("Fluent B it Converter starting ,,,");
     checkDebug();
     String inFileName = null;
     try {
@@ -439,9 +453,11 @@ class FLBConverter {
       }
 
       while (inFileName != null) {
+        inFileName = getPathPrefix() + inFileName;
         inputs = new ArrayList<Plugin>();
         outputs = new ArrayList<Plugin>();
         filters = new ArrayList<Plugin>();
+
         if (checkReportToFile()) {
           File reportFile = new File(getOutFile(inFileName) + ".report");
           converterReport = new FileWriter(reportFile);
@@ -454,9 +470,11 @@ class FLBConverter {
         } else {
           inFileName = null;
         }
-        converterReport.flush();
-        converterReport.close();
-        converterReport = null;
+        if (converterReport != null) {
+          converterReport.flush();
+          converterReport.close();
+          converterReport = null;
+        }
       }
     } catch (Exception err) {
       err(err.getMessage());
