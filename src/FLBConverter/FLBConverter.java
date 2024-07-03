@@ -439,7 +439,7 @@ class FLBConverter {
         inFileName = br.readLine().trim();
         debug("Conversion list file points to:" + inFileName);
       } else {
-        debug("No Conversion list");
+        debug("No Conversion list - " + conversionList.getPath());
       }
 
       if ((inFileName == null) && (args != null) && (args.length != 0)) {
