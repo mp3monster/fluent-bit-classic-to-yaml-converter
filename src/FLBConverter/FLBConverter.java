@@ -1,17 +1,21 @@
 package FLBConvertor;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 
 class FLBConverter {
 
+  private static final String NL = "\n";
+  private static final String FLB_REPORT_FILE = "FLB_REPORT_FILE";
   private static final String TRUE = "true";
   private static final String FLB_CONVERT_DEBUG = "FLB_CONVERT_DEBUG";
   private static final String CONVERSION_LIST = "conversion.list";
@@ -28,7 +32,12 @@ class FLBConverter {
   private static final String FLB_CLASSIC_FN = "FLBClassicFN";
 
   private static boolean debug = false;
+  private static boolean logToFile = false;
+  private static FileWriter converterReport = null;
 
+  /*
+   * Define the different plugin types.
+   */
   enum PluginType {
     INPUT, OUTPUT, FILTER, SERVICE
   };
@@ -36,21 +45,62 @@ class FLBConverter {
   static class HashMapArray extends HashMap<String, ArrayList<String>> {
   }
 
+  /**
+   * @param msg
+   */
   static void debug(String msg) {
     if (debug) {
-      System.out.println("debug:" + msg);
+      final String logStr = "debug:" + msg;
+      System.out.println(logStr);
+      if (logToFile && converterReport != null) {
+        try {
+          converterReport.write(logStr + NL);
+        } catch (IOException err) {
+          System.out.println("Unable to record debug to report file");
+        }
+      }
     }
   }
 
+  /**
+   * @param msg
+   */
   static void info(String msg) {
-    System.out.println(msg);
+    final String logStr = "info:" + msg;
+    System.out.println(logStr);
+    if (logToFile && converterReport != null) {
+      try {
+        converterReport.write(logStr + NL);
+      } catch (IOException err) {
+        System.out.println("Unable to record info to report file");
+      }
+    }
   }
 
+  /**
+   * @param msg
+   */
   static void err(String msg) {
-    System.out.println("ERROR:" + msg);
+    final String logStr = "ERROR:" + msg;
+    System.out.println(logStr);
+    if (logToFile && converterReport != null) {
+      try {
+        converterReport.write(logStr + NL);
+      } catch (IOException err) {
+        System.out.println("Unable to record ERROR to report file");
+      }
+    }
   }
 
+  /**
+   * This class helps us process the plugins and directives. Each plugin will have
+   * an instance of this class
+   */
   static class Plugin {
+    private static final String WILDCARD = "*";
+    private static final String DUMMYATTR = "dummy";
+    private static final String COMMENT = "#";
+    private static final String INCLUDE = "@include";
     private static final String NAMEATTR = "name";
     public PluginType pluginType;
     private String name = null;
@@ -59,8 +109,6 @@ class FLBConverter {
     static final int NAMEINDENT = 2;
     static final int ATTRIBUTEINDENT = 3;
 
-    // HashMap<String, String> attributes = new HashMap<String,
-    // ArrayList<String>>();
     HashMapArray attributes = new HashMapArray();
 
     String indenter(int depth) {
@@ -78,7 +126,7 @@ class FLBConverter {
     static boolean checkForInclusion(String line, int lineNo) {
       boolean found = false;
       String tempLine = line.toLowerCase();
-      if (tempLine.contains("@include")) {
+      if (tempLine.contains(INCLUDE)) {
         info("Warning: @include found at line " + lineNo + "  >>  " + line);
         found = true;
       }
@@ -87,7 +135,6 @@ class FLBConverter {
     }
 
     public void add(String attribute, int lineNo) {
-      // assert (attribute == null) : "Received null string";
       if (attribute == null) {
         return;
       }
@@ -96,12 +143,11 @@ class FLBConverter {
       if (attribute.length() == 0) {
         return;
       }
-      // assert (attribute.length() > 0) : "Received empty string";
       checkForInclusion(attribute, lineNo);
 
       String attributeName = null;
       int sepPos = 0;
-      if (attribute.startsWith("#")) {
+      if (attribute.startsWith(COMMENT)) {
         sepPos = 1;
       } else {
         sepPos = attribute.indexOf(SEPARATOR);
@@ -112,10 +158,10 @@ class FLBConverter {
           this.name = attribute.substring(sepPos);
         } else {
           String attributeValue = attribute.substring(sepPos).trim();
-          if (attributeValue.equalsIgnoreCase("*")) {
+          if (attributeValue.equalsIgnoreCase(WILDCARD)) {
             attributeValue = "\"*\"";
           }
-          if ((attributeName.equalsIgnoreCase("dummy")) && (!attributeValue.startsWith("\'"))) {
+          if ((attributeName.equalsIgnoreCase(DUMMYATTR)) && (!attributeValue.startsWith("\'"))) {
             attributeValue = "\'" + attributeValue + "\'";
           }
           ArrayList<String> values = null;
@@ -134,7 +180,7 @@ class FLBConverter {
     }
 
     String writePrefix() {
-      return indenter(NAMEINDENT) + "- name: " + this.name + "\n";
+      return indenter(NAMEINDENT) + "- name: " + this.name + NL;
     }
 
     public String write() {
@@ -150,13 +196,13 @@ class FLBConverter {
         String value = null;
         while (valIter.hasNext()) {
           value = valIter.next();
-          if (key.equals("#")) {
+          if (key.equals(COMMENT)) {
             line = indenter(ATTRIBUTEINDENT) + key + value;
           } else {
             line = indenter(ATTRIBUTEINDENT) + key + ": " + value;
           }
           debug(line);
-          YAMLoutput = YAMLoutput + line + "\n";
+          YAMLoutput = YAMLoutput + line + NL;
         }
       }
 
@@ -191,6 +237,9 @@ class FLBConverter {
   private static ArrayList<Plugin> outputs = null;
   private static ArrayList<Plugin> filters = null;
 
+  /**
+   * @param currentPlugin
+   */
   private static void storePlugin(Plugin currentPlugin) {
     if (currentPlugin != null) {
       switch (currentPlugin.pluginType) {
@@ -257,7 +306,7 @@ class FLBConverter {
       outFile.write("  " + label + ":\n");
       Iterator<Plugin> iter = plugins.iterator();
       while (iter.hasNext()) {
-        outFile.write(iter.next().write() + "\n");
+        outFile.write(iter.next().write() + NL);
       }
     }
 
@@ -268,7 +317,7 @@ class FLBConverter {
       outFile.write(SERVICEYAMLLBL);
       outFile.write(service.write());
 
-      outFile.write("\n");
+      outFile.write(NL);
       outFile.write(PIPELINEYAMLLBL);
       if (!inputs.isEmpty()) {
         writePlugins(inputs, outFile, INPUTSYAML);
@@ -305,7 +354,7 @@ class FLBConverter {
       info("InputFile:" + inFileName + " --> " + outFileName);
       consumeClassicFile(new BufferedReader(fr));
 
-      info("Inputs:" + inputs.size() + "\n" + "Filters:" + filters.size() + "\n" + "Outputs:" + outputs.size() + "\n");
+      info("Inputs:" + inputs.size() + NL + "Filters:" + filters.size() + NL + "Outputs:" + outputs.size() + NL);
 
       outFile = new BufferedWriter(new FileWriter(outFileName));
       writeOutput(outFile);
@@ -335,12 +384,28 @@ class FLBConverter {
     }
   }
 
-  private static void checkDebug() {
-    String debugFlag = System.getenv(FLB_CONVERT_DEBUG);
-    if ((debugFlag != null) && (debugFlag.trim().equalsIgnoreCase(TRUE))) {
+  static String getDateStr() {
+    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+    LocalDateTime now = LocalDateTime.now();
+    return (dtf.format(now));
+  }
+
+  private static boolean checkDebug() {
+    String debugFlagStr = System.getenv(FLB_CONVERT_DEBUG);
+    if ((debugFlagStr != null) && (debugFlagStr.trim().equalsIgnoreCase(TRUE))) {
       debug = true;
-      System.out.println("Env flag for debug set to " + debugFlag);
+      System.out.println("Env flag for debug set to " + debugFlagStr);
     }
+    return debug;
+  }
+
+  private static boolean checkReportToFile() {
+    String reportFlagStr = System.getenv(FLB_REPORT_FILE);
+    if ((reportFlagStr != null) && (reportFlagStr.trim().equalsIgnoreCase(TRUE))) {
+      logToFile = true;
+      System.out.println("Env flag for reporting to file set to " + reportFlagStr);
+    }
+    return logToFile;
   }
 
   public static void main(String[] args) {
@@ -358,7 +423,7 @@ class FLBConverter {
         fr = new FileReader(conversionList);
         br = new BufferedReader(fr);
         inFileName = br.readLine().trim();
-        debug("Converion list file points to:" + inFileName);
+        debug("Conversion list file points to:" + inFileName);
       } else {
         debug("No Conversion list");
       }
@@ -377,6 +442,11 @@ class FLBConverter {
         inputs = new ArrayList<Plugin>();
         outputs = new ArrayList<Plugin>();
         filters = new ArrayList<Plugin>();
+        if (checkReportToFile()) {
+          File reportFile = new File(getOutFile(inFileName) + ".report");
+          converterReport = new FileWriter(reportFile);
+          converterReport.write("Execution date:" + getDateStr() + NL);
+        }
         processor(inFileName, getOutFile(inFileName));
 
         if (more) {
@@ -384,6 +454,9 @@ class FLBConverter {
         } else {
           inFileName = null;
         }
+        converterReport.flush();
+        converterReport.close();
+        converterReport = null;
       }
     } catch (Exception err) {
       err(err.getMessage());
