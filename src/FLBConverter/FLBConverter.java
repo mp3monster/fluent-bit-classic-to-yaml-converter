@@ -427,7 +427,7 @@ class FLBConverter {
     String inFileName = null;
     try {
       boolean more = false;
-      File conversionList = new File(CONVERSION_LIST);
+      File conversionList = new File(getPathPrefix() + CONVERSION_LIST);
       BufferedReader br = null;
       FileReader fr = null;
 
