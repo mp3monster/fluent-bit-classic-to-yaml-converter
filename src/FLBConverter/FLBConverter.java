@@ -14,6 +14,7 @@ import java.util.Iterator;
 
 class FLBConverter {
 
+  private static final String FLB_PATH_PREFIX = "FLB_PATH_PREFIX";
   private static final String NL = "\n";
   private static final String FLB_REPORT_FILE = "FLB_REPORT_FILE";
   private static final String TRUE = "true";
@@ -401,15 +402,16 @@ class FLBConverter {
 
   private static boolean checkReportToFile() {
     String reportFlagStr = System.getenv(FLB_REPORT_FILE);
+    logToFile = false;
     if ((reportFlagStr != null) && (reportFlagStr.trim().equalsIgnoreCase(TRUE))) {
       logToFile = true;
-      System.out.println("Env flag for reporting to file set to " + reportFlagStr);
     }
+    debug("Env flag for reporting to file set to " + reportFlagStr);
     return logToFile;
   }
 
   private static String getPathPrefix() {
-    String pathPrefix = System.getenv("FLB_PATH_PREFIX");
+    String pathPrefix = System.getenv(FLB_PATH_PREFIX);
     pathPrefix = pathPrefix.trim();
     if ((pathPrefix == null) || (pathPrefix.length() == 0)) {
       pathPrefix = "";
