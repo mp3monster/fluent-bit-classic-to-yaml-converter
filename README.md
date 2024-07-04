@@ -26,16 +26,12 @@ The utility reads the classic file line by line and maps each line into a struct
 There are some functional gaps/needs that need to be addressed, and the plan is to do so quickly:
 
 - Test configurations published
-- Add Javadoc
 
 #### Gaps & features (to be addressed)
 
 Additions to be developed for the longer term:
 
 - Regression test pack  (Docker image?)
-
-- Generate CLI version of the configuration
-
 - Apply the idiomatic naming convention to attribute names
 
   
@@ -102,6 +98,11 @@ docker build . --no-cache --build-arg="RELEASE=0.2" -t flb-converter
 ```
 
 By default the logging is at Info level, so the console output will reflect the output into the .report file generated.
+
+To run the container we can then use the command:
+```bash
+docker run . --no-cache --build-arg="RELEASE=0.2" -t flb-converter
+```
 
 ####  Output Filename
 
