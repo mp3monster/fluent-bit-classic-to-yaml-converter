@@ -414,12 +414,18 @@ class FLBConverter {
     if ((pathPrefix == null) || (pathPrefix.length() == 0)) {
       pathPrefix = "";
     } else {
-      if (!pathPrefix.endsWith("\\")) {
-        pathPrefix = pathPrefix + "\\";
+      if ((!pathPrefix.endsWith("\\")) || (!pathPrefix.endsWith("/"))) {
+        if (pathPrefix.contains("\\")) {
+          pathPrefix = pathPrefix + "\\";
+        } else {
+          pathPrefix = pathPrefix + "/";
+        }
       }
-      debug("setting path prefix to:" + pathPrefix);
     }
+    debug("setting path prefix to:" + pathPrefix);
+
     return pathPrefix;
+
   }
 
   public static void main(String[] args) {
