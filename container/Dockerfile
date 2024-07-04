@@ -5,6 +5,7 @@ VOLUME ["/vol/conf"]
 ARG RELEASE=main
 ENV FLB_PATH_PREFIX=/vol/conf/
 ENV FLB_CONVERT_DEBUG=false
+ENV FLB_REPORT_FILE=true
 RUN wget https://github.com/mp3monster/fluent-bit-classic-to-yaml-converter/raw/${RELEASE}/src/FLBConverter/FLBConverter.java
 RUN chmod a+rx *.java
 CMD java FLBConverter.java
