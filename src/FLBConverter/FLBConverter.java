@@ -23,6 +23,8 @@ import java.util.Iterator;
 
 class FLBConverter {
 
+  private static final String INCLUDES_LBL = "#INCLUDES:";
+  private static final String HELP = "--help";
   private static final String FLB_PATH_PREFIX = "FLB_PATH_PREFIX";
   private static final String FLB_PATH_PREFIX_HELP = "Allows us to create a default offset location for our files. Helps when the folder in which the files to be converted are in a different folder";
 
@@ -37,6 +39,9 @@ class FLBConverter {
 
   private static final String FLB_CLASSIC_FN = "FLBClassicFN";
   private static final String FLB_CLASSIC_FN_HELP = "This environment variable can be used to identify a single conversion";
+
+  private static final String FLB_IDIOMATICFORM = "FLB_IDIOMATICFORM";
+  private static final String FLB_IDIOMATICFORM_HELP = "FLB_IDIOMATICFORM";
 
   private static final String NL = "\n";
   private static final String TRUE = "true";
@@ -67,7 +72,7 @@ class FLBConverter {
    * Define the different plugin types.
    */
   enum PluginType {
-    INPUT, OUTPUT, FILTER, SERVICE
+    INPUT, OUTPUT, FILTER, SERVICE, INCLUDES, SET
   };
 
   static class HashMapArray extends HashMap<String, ArrayList<String>> {
@@ -155,16 +160,37 @@ class FLBConverter {
      */
     HashMapArray attributes = new HashMapArray();
 
+    /**
+     * Standard constructor
+     * 
+     * @param type
+     */
+    public Plugin(PluginType type) {
+      this.pluginType = type;
+    }
+
+    /**
+     * get the number of different attributes types (some plugins allow multiple
+     * occurrences of the same attribute)
+     * 
+     * @return
+     */
+    public int attributeCountByType() {
+      return attributes.size();
+    }
+
+    /**
+     * builds an indent string that will be accepted by YAML
+     * 
+     * @param depth how many levels of indetation
+     * @return
+     */
     String indenter(int depth) {
       String indent = "";
       for (int idx = 0; idx < depth; idx++) {
         indent = indent + "  ";
       }
       return indent;
-    }
-
-    public Plugin(PluginType type) {
-      this.pluginType = type;
     }
 
     /**
@@ -187,8 +213,18 @@ class FLBConverter {
       return found;
     }
 
+    /**
+     * converts the attribute name to its idiomatc form if the option is enabled
+     * 
+     * @param attributeName name to convert
+     * @return
+     */
     private String toIdiomaticForm(String attributeName) {
 
+      if (!useIdiomaticForm) {
+        return attributeName;
+      }
+      attributeName = attributeName.toLowerCase();
       StringBuilder builder = new StringBuilder(attributeName);
 
       // Traverse the string character by
@@ -250,6 +286,7 @@ class FLBConverter {
           attributeName = "#" + attributeName;
           // its not already a comment - let's comment out the inclusion
         }
+        attributeName = toIdiomaticForm(attributeName);
         // we need to handle the name attribute slightly differently
         if (attributeName.equalsIgnoreCase(NAMEATTR)) {
           this.name = attribute.substring(sepPos);
@@ -322,9 +359,48 @@ class FLBConverter {
       return YAMLoutput;
     }
 
-    // public String getName() {
-    // return pluginType.toString();
-    // }
+  }
+
+  static class SpecialPlugin extends Plugin {
+
+    public SpecialPlugin(PluginType type) {
+      super(type);
+    }
+
+    /**
+     * Provide identation that reflects the service block
+     */
+    @Override
+    String indenter(int depth) {
+      return "  ";
+    }
+
+    /**
+     * We don't want to handle a name attribute in a manner that is different to
+     * other service attributes.
+     */
+    @Override
+    String writePrefix() {
+      return "";
+    }
+
+    public void add(Plugin plugin) {
+      debug("merging special plugin");
+      if (plugin.attributes != null) {
+        Iterator keys = (plugin.attributes.keySet()).iterator();
+
+        while (keys.hasNext()) {
+          String key = (String) keys.next();
+          if (this.attributes.containsKey(key)) {
+            ArrayList<String> values = attributes.get(key);
+            ArrayList<String> newValues = plugin.attributes.get(key);
+            values.addAll(newValues);
+            this.attributes.replace((String) key, values);
+          }
+        }
+      }
+
+    }
   }
 
   /**
@@ -332,9 +408,26 @@ class FLBConverter {
    * filters. The level of YAML indentation is different, and we don't have a name
    * attribute
    */
-  static class ServicePlugin extends Plugin {
+  static class ServicePlugin extends SpecialPlugin {
     public ServicePlugin() {
       super(PluginType.SERVICE);
+    }
+
+  }
+
+  /**
+   * We need the rewepresentation of services to differ from inputs, outputs and
+   * filters. The level of YAML indentation is different, and we don't have a name
+   * attribute
+   */
+  static class IncludesPlugin extends SpecialPlugin {
+    public IncludesPlugin() {
+      super(PluginType.INCLUDES);
+    }
+
+    public IncludesPlugin(String line, int lineNo) {
+      super(PluginType.INCLUDES);
+      add(line, lineNo);
     }
 
     /**
@@ -356,8 +449,8 @@ class FLBConverter {
 
   }
 
-  private static Plugin service = null;
-
+  private static SpecialPlugin service = null;
+  private static SpecialPlugin includes = null;
   private static ArrayList<Plugin> inputs = null;
   private static ArrayList<Plugin> outputs = null;
   private static ArrayList<Plugin> filters = null;
@@ -381,7 +474,21 @@ class FLBConverter {
           outputs.add(currentPlugin);
           break;
         case SERVICE:
-          service = currentPlugin;
+          if (service == null) {
+            service = (SpecialPlugin) currentPlugin;
+            // service needs to be treated as a singleton
+          } else {
+            service.add((SpecialPlugin) currentPlugin);
+            err("Merging a service plugin");
+          }
+          break;
+        case INCLUDES:
+          // service
+          if (includes == null) {
+            includes = (IncludesPlugin) currentPlugin;
+          } else {
+            includes.add((IncludesPlugin) currentPlugin);
+          }
           break;
         default:
           info("Unknown plugin type");
@@ -412,7 +519,13 @@ class FLBConverter {
       debug(line);
 
       if (line.length() > 0) {
-        if (line.equalsIgnoreCase(SERVICECLASSIC)) {
+        if (line.toLowerCase().startsWith("@include")) {
+          if (includes == null) {
+            includes = new IncludesPlugin(line, lineCount);
+          } else {
+            includes.add(line, lineCount);
+          }
+        } else if (line.equalsIgnoreCase(SERVICECLASSIC)) {
           storePlugin(currentPlugin);
           currentPlugin = new ServicePlugin();
         } else if (line.equalsIgnoreCase(INPUTCLASSIC)) {
@@ -468,7 +581,13 @@ class FLBConverter {
     if (service != null) {
       outFile.write(SERVICEYAMLLBL);
       outFile.write(service.write());
+      if ((includes != null) && (includes.attributeCountByType() > 0)) {
+        outFile.write(NL);
+        outFile.write(INCLUDES_LBL);
+        outFile.write(NL);
 
+        outFile.write(includes.write());
+      }
       outFile.write(NL);
       outFile.write(PIPELINEYAMLLBL);
       if (!inputs.isEmpty()) {
@@ -626,7 +745,7 @@ class FLBConverter {
    */
   private static boolean useIdiomatricForm() {
     boolean flag = false;
-    String idiomaticFlagStr = System.getenv("FLB_IDIOMATICFORM");
+    String idiomaticFlagStr = System.getenv(FLB_IDIOMATICFORM);
     logToFile = false;
     if ((idiomaticFlagStr != null) && (idiomaticFlagStr.trim().equalsIgnoreCase(TRUE))) {
       flag = true;
@@ -649,6 +768,10 @@ class FLBConverter {
    * @param args
    */
   public static void main(String[] args) {
+    if ((args != null) && (args.length > 0) && (args[0].trim().equalsIgnoreCase(HELP))) {
+      printHelp();
+      System.exit(0);
+    }
     info("Fluent Bit Converter starting ...");
     checkDebug();
     useIdiomatricForm();
@@ -714,13 +837,20 @@ class FLBConverter {
    * Generates the CLI help
    */
   static void printHelp() {
-    System.out.println(FLB_CONVERT_DEBUG + " -- " + FLB_CONVERT_DEBUG_HELP);
-    System.out.println(FLB_REPORT_FILE + " -- " + FLB_REPORT_FILE_HELP);
-    System.out.println(FLB_PATH_PREFIX + " -- " + FLB_PATH_PREFIX_HELP);
-    System.out.println(FLB_CLASSIC_FN + " -- " + FLB_CLASSIC_FN_HELP);
+    final String pt = " --> ";
+    System.out.println(NL);
+    System.out.println("FLBConverter help");
+    System.out.println(HELP + pt + "This information");
+    System.out.println("<filename>" + pt + "Process the file identified by <filename>");
+    System.out.println(FLB_CONVERT_DEBUG + pt + FLB_CONVERT_DEBUG_HELP);
+    System.out.println(FLB_REPORT_FILE + pt + FLB_REPORT_FILE_HELP);
+    System.out.println(FLB_PATH_PREFIX + pt + FLB_PATH_PREFIX_HELP);
+    System.out.println(FLB_IDIOMATICFORM + pt + FLB_IDIOMATICFORM_HELP);
+    System.out.println(FLB_CLASSIC_FN + pt + FLB_CLASSIC_FN_HELP);
 
     System.out.println(NL);
-    System.out.println(CONVERSION_LIST + " -- " + CONVERSION_LIST_HELP);
+    System.out.println(CONVERSION_LIST + pt + CONVERSION_LIST_HELP);
+    System.out.println(NL);
 
   }
 }
