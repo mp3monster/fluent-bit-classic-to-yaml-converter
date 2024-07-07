@@ -21,26 +21,15 @@ The utility reads the classic file line by line and maps each line into a struct
 - Wild card match declarations need the asterisk quoting. 
 - Dummy attribute strings are wrapped with single quotes
 
-#### Gaps & features (to be addressed <u>soon</u>)
-
-There are some functional gaps/needs that need to be addressed, and the plan is to do so quickly:
-
-- Test configurations published
-
 #### Gaps & features (to be addressed)
 
 Additions to be developed for the longer term:
 
 - Regression test pack  (Docker image?)
-- Apply the idiomatic naming convention to attribute names
-
-  
 
 #### Differences unlikely to be addressed
 
-There are a few differences that we're not planning on addressing - as there isn't a simple answer:
-
-- Order sensitivity - solution use match declarations
+The definition of environment variables is not yet addressed, and it could be problematic to try and do so.
 
 ## Running the Tool
 
@@ -110,11 +99,15 @@ The generated file is written to the same folder as the source file (assuming pe
 
 #### Logging
 
-To keep things very simple, logging is controlled directly to std out. However, we can control whether the console output includes debug messages by setting an environment variable of `FLB_CONVERT_DEBUG` with the value `true`.
+To keep things very simple, logging is controlled directly to stdout. However, we can control whether the console output includes debug messages by setting an environment variable of `FLB_CONVERT_DEBUG` with a value of `true`.
 
 #### Reporting Logged Details to File
 
-We can ask the converter to write the output information to a file (the output filename with a postfix of `.report`). This can be enabled with the environment variable `FLB_REPORT_FILE` set to a `true` value.
+We can ask the converter to write the output information to a file (the output filename with a postfix of `.report`). This can be enabled with the environment variable `FLB_REPORT_FILE` set to a value of `true` .
+
+#### CLI Help
+
+The tool supports the use of `--help` to get the help details.
 
 # Configuration Summary
 
@@ -124,9 +117,10 @@ We can ask the converter to write the output information to a file (the output f
 | `FLB_CONVERT_DEBUG`                   | Switches on the debug level logging when set to `true`       |
 | `FLB_PATH_PREFIX`                     | If you want to run the logic from another folder to that containing the configuration files and `conversion.list` we can apply a prefix which will be incorporated into the path e.g. `/vol/conf/` |
 | `FLBClassicFN`                        | An environment variable approach to specifying a single file to convert. |
+| `FLB_IDIOMATICFORM`                   | When set to true the Kubernetes idiomatic form is adopted for the attribute names e.g. `aMetric` rather than `a_metric` |
 
 
 
 ## Supporting this project
 
-To help improve the utility, if you encounter configuration scenarios that the tool doesn't correctly translate, please share them.
+To help improve the utility, if you encounter configuration scenarios that the tool doesn't correctly translate, please share them through GitHub. Likewise for feature requests.

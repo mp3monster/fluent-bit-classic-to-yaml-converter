@@ -847,7 +847,6 @@ class FLBConverter {
     System.out.println(FLB_PATH_PREFIX + pt + FLB_PATH_PREFIX_HELP);
     System.out.println(FLB_IDIOMATICFORM + pt + FLB_IDIOMATICFORM_HELP);
     System.out.println(FLB_CLASSIC_FN + pt + FLB_CLASSIC_FN_HELP);
-
     System.out.println(NL);
     System.out.println(CONVERSION_LIST + pt + CONVERSION_LIST_HELP);
     System.out.println(NL);
