@@ -1,10 +1,11 @@
 /**
+ * This is a single file application (meaning we can skip the jar generation task).
+ * Its purpose is to read a Fluent Bit classic file and generate a YAML representation
+ * 
  * @author Phil Wilkins
  * @Email code@mp3monster.org
  * @license Apache 2.0
  * 
- * This is a single file application (meaning we can skip the jar generation task).
- * Its purpose is to read a Fluent Bit classic file and generate a YAML representation
  */
 package FLBConvertor;
 
@@ -21,8 +22,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
+/**
+ * This is the tools main chalss - so has the main methods etc
+ */
 class FLBConverter {
 
+  /**
+   * Constants starting FLB are relatyed to configuration of this utility
+   */
   private static final String INCLUDES_LBL = "#INCLUDES:";
   private static final String HELP = "--help";
   private static final String FLB_PATH_PREFIX = "FLB_PATH_PREFIX";
@@ -43,6 +50,12 @@ class FLBConverter {
   private static final String FLB_IDIOMATICFORM = "FLB_IDIOMATICFORM";
   private static final String FLB_IDIOMATICFORM_HELP = "FLB_IDIOMATICFORM";
 
+  /**
+   * Constants post fixed with CKLASSIC are strings we search in the classic
+   * format files
+   * The post fixed names with YAML are the labels used in the YAML configuration
+   * file
+   */
   private static final String NL = "\n";
   private static final String TRUE = "true";
   private static final String REPORT_EXTN = ".report";
@@ -75,6 +88,11 @@ class FLBConverter {
     INPUT, OUTPUT, FILTER, SERVICE, INCLUDES, SET
   };
 
+  /**
+   * We've defined this structure to simplify asnd ensure consistency. The Hashamp
+   * allows us to look up attribute names, but there are scenarios where an
+   * attribute key can be repeated.
+   */
   static class HashMapArray extends HashMap<String, ArrayList<String>> {
   }
 
@@ -149,11 +167,15 @@ class FLBConverter {
     static final int PLUGININDENT = 1;
     static final int NAMEINDENT = 2;
     static final int ATTRIBUTEINDENT = 3;
+
+    /** pluginType is an enumeration to make it easy to determine the plugin type */
     public PluginType pluginType;
+    /** name represents the name plughin */
     private String name = null;
 
     /**
-     * As certin attributes are allowed to reoccur such as the rules in the modifier
+     * As certain attributes are allowed to reoccur such as the rules in the
+     * modifier
      * filter plugin we store each attribute name as a HashMap containing array
      * lists. We've declared our our own class for this to simplify the use of the
      * definition
@@ -163,7 +185,7 @@ class FLBConverter {
     /**
      * Standard constructor
      * 
-     * @param type
+     * @param type this the enumeration showing the type of plugin being handled
      */
     public Plugin(PluginType type) {
       this.pluginType = type;
@@ -173,7 +195,8 @@ class FLBConverter {
      * get the number of different attributes types (some plugins allow multiple
      * occurrences of the same attribute)
      * 
-     * @return
+     * @return the number of attributes held by this plugin. We only count one
+     *         unique occurence of an attribute
      */
     public int attributeCountByType() {
       return attributes.size();
@@ -183,7 +206,7 @@ class FLBConverter {
      * builds an indent string that will be accepted by YAML
      * 
      * @param depth how many levels of indetation
-     * @return
+     * @return the YAML suitable indentation characters
      */
     String indenter(int depth) {
       String indent = "";
@@ -217,7 +240,7 @@ class FLBConverter {
      * converts the attribute name to its idiomatc form if the option is enabled
      * 
      * @param attributeName name to convert
-     * @return
+     * @return returns the attribute key in a format dictated by the idiomatv
      */
     private String toIdiomaticForm(String attributeName) {
 
@@ -361,8 +384,18 @@ class FLBConverter {
 
   }
 
+  /**
+   * We have extended the plugin to bring together those versions of
+   * Plugin that are more specialized
+   * such as needing singelton characteristics.
+   */
   static class SpecialPlugin extends Plugin {
 
+    /**
+     * standard constructor where we'll cascade the informas
+     * 
+     * @param type the plugin type to be construb
+     */
     public SpecialPlugin(PluginType type) {
       super(type);
     }
@@ -384,6 +417,11 @@ class FLBConverter {
       return "";
     }
 
+    /**
+     * This adds a plugin to the list of plugins, unless the
+     * 
+     * @param plugin the plugin object to be added to the the appropriate collection
+     */
     public void add(Plugin plugin) {
       debug("merging special plugin");
       if (plugin.attributes != null) {
@@ -404,7 +442,7 @@ class FLBConverter {
   }
 
   /**
-   * We need the rewepresentation of services to differ from inputs, outputs and
+   * We need the representation of services to differ from inputs, outputs and
    * filters. The level of YAML indentation is different, and we don't have a name
    * attribute
    */
@@ -421,10 +459,19 @@ class FLBConverter {
    * attribute
    */
   static class IncludesPlugin extends SpecialPlugin {
+    /**
+     * Standard construct which will pushdown to the basse class the type of okugin
+     */
     public IncludesPlugin() {
       super(PluginType.INCLUDES);
     }
 
+    /**
+     * Constructor for the includes variant - which allows us to creat
+     * 
+     * @param line   the line of source to be processed
+     * @param lineNo The lineNo reflects where this attribute originated from
+     */
     public IncludesPlugin(String line, int lineNo) {
       super(PluginType.INCLUDES);
       add(line, lineNo);
@@ -459,7 +506,8 @@ class FLBConverter {
    * Depending upon the the label in the classic file, we need to decide which
    * group of plugins to add the latest definition to.
    * 
-   * @param currentPlugin
+   * @param currentPlugin the active plugin we've been adding attributes to and
+   *                      now needs attaching to the cirrec
    */
   private static void storePlugin(Plugin currentPlugin) {
     if (currentPlugin != null) {
@@ -629,9 +677,9 @@ class FLBConverter {
    * file format and once read runs the process of writing each plugin/directive
    * to the output file
    * 
-   * @param inFileName
+   * @param inFileName  name of the classic file to be processed
    * 
-   * @param outFileName
+   * @param outFileName name of the file we're going to write YAML to
    */
   private static void processor(String inFileName, String outFileName) {
     getOutFile(inFileName);
@@ -687,8 +735,10 @@ class FLBConverter {
   /**
    * Checks for the environment variable that control whether we log to debug
    * level. We've not adopted a logging framework so that we can keep the code as
-   * a
-   * single class. This means we can run without needing to have a Mave or Gradle
+   * a single class. This means we can run without needing to have a Mave or
+   * Gradle
+   * 
+   * @return returns the boolean indicating if debug is enabled
    */
   private static boolean checkDebug() {
     String debugFlagStr = System.getenv(FLB_CONVERT_DEBUG);
@@ -703,6 +753,8 @@ class FLBConverter {
    * If the environment variable is set then any info logs are also written to a
    * file that is the same as the output with the filename extended with .report
    * Useful if we're using a conversion.list
+   * 
+   * @return true if we find the flag for producing the report
    */
   private static boolean checkReportToFile() {
     String reportFlagStr = System.getenv(FLB_REPORT_FILE);
