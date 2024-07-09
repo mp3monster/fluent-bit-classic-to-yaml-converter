@@ -29,7 +29,7 @@ Additions to be developed for the longer term:
 
 #### Differences unlikely to be addressed
 
-The definition of environment variables is not yet addressed, and it could be problematic to try and do so.
+The definition of environment variables has not yet been addressed, and it could be problematic to try to do so.
 
 ## Running the Tool
 
@@ -90,7 +90,7 @@ By default the logging is at Info level, so the console output will reflect the 
 
 To run the container we can then use the command:
 ```bash
-docker run . --no-cache --build-arg="RELEASE=0.2" -t flb-converter
+docker run -t flb-converter
 ```
 
 ####  Output Filename
@@ -119,7 +119,11 @@ The tool supports the use of `--help` to get the help details.
 | `FLBClassicFN`                        | An environment variable approach to specifying a single file to convert. |
 | `FLB_IDIOMATICFORM`                   | When set to true the Kubernetes idiomatic form is adopted for the attribute names e.g. `aMetric` rather than `a_metric` |
 
+# Other Info
 
+#### JavaDoc
+
+For those interested in seeing the implementation details, we have generated JavaDoc for everything in the utility - makes for slightly easier reading. With the JavaDoc we've created a script file so you can see exactly how we've generated the doc and repeat the process.
 
 ## Supporting this project
 
