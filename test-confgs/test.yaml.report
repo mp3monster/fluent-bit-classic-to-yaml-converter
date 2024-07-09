@@ -1,0 +1,7 @@
+Execution date:03/07/2024 01:15:39
+info:InputFile:..\..\test\test.conf --> ..\..\test\test.yaml
+info:Warning: @include found at line 51  >>  @include blah.blah
+info:Inputs:6
+Filters:6
+Outputs:1
+
