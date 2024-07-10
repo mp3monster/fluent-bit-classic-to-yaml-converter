@@ -48,7 +48,7 @@ class FLBConverter {
   private static final String FLB_CLASSIC_FN_HELP = "This environment variable can be used to identify a single conversion";
 
   private static final String FLB_IDIOMATICFORM = "FLB_IDIOMATICFORM";
-  private static final String FLB_IDIOMATICFORM_HELP = "FLB_IDIOMATICFORM";
+  private static final String FLB_IDIOMATICFORM_HELP = "When set the attributev names are converted to use the Kubernmetes idiomatic format";
 
   /**
    * Constants post fixed with CKLASSIC are strings we search in the classic
@@ -170,7 +170,7 @@ class FLBConverter {
 
     /** pluginType is an enumeration to make it easy to determine the plugin type */
     public PluginType pluginType;
-    /** name represents the name plughin */
+    /** name represents the name plugin */
     private String name = null;
 
     /**
@@ -312,7 +312,7 @@ class FLBConverter {
         attributeName = toIdiomaticForm(attributeName);
         // we need to handle the name attribute slightly differently
         if (attributeName.equalsIgnoreCase(NAMEATTR)) {
-          this.name = attribute.substring(sepPos);
+          this.name = attribute.substring(sepPos).trim();
         } else {
           // determine whether there is a wildcard involved, correct the quotations
           String attributeValue = attribute.substring(sepPos).trim();
@@ -513,12 +513,21 @@ class FLBConverter {
     if (currentPlugin != null) {
       switch (currentPlugin.pluginType) {
         case FILTER:
+          if (outputs == null) {
+            filters = new ArrayList<Plugin>();
+          }
           filters.add(currentPlugin);
           break;
         case INPUT:
+          if (inputs == null) {
+            inputs = new ArrayList<Plugin>();
+          }
           inputs.add(currentPlugin);
           break;
         case OUTPUT:
+          if (outputs == null) {
+            outputs = new ArrayList<Plugin>();
+          }
           outputs.add(currentPlugin);
           break;
         case SERVICE:
@@ -531,7 +540,6 @@ class FLBConverter {
           }
           break;
         case INCLUDES:
-          // service
           if (includes == null) {
             includes = (IncludesPlugin) currentPlugin;
           } else {
@@ -564,7 +572,7 @@ class FLBConverter {
       lineCount++;
       line = line.trim();
 
-      debug(line);
+      debug("consume [" + lineCount + "]:" + line);
 
       if (line.length() > 0) {
         if (line.toLowerCase().startsWith("@include")) {
@@ -627,26 +635,29 @@ class FLBConverter {
    */
   private static void writePipelineOutput(BufferedWriter outFile) throws IOException {
     if (service != null) {
-      outFile.write(SERVICEYAMLLBL);
-      outFile.write(service.write());
+      if ((service != null) && (service.attributeCountByType() > 0)) {
+        outFile.write(SERVICEYAMLLBL);
+        outFile.write(service.write());
+      }
       if ((includes != null) && (includes.attributeCountByType() > 0)) {
         outFile.write(NL);
         outFile.write(INCLUDES_LBL);
         outFile.write(NL);
-
         outFile.write(includes.write());
       }
+
       outFile.write(NL);
       outFile.write(PIPELINEYAMLLBL);
-      if (!inputs.isEmpty()) {
+
+      if ((inputs != null) && (!inputs.isEmpty())) {
         writePlugins(inputs, outFile, INPUTSYAML);
       }
 
-      if (!filters.isEmpty()) {
+      if ((filters != null) && (!filters.isEmpty())) {
         writePlugins(filters, outFile, FILTERSYAML);
       }
 
-      if (!outputs.isEmpty()) {
+      if ((outputs != null) && (!outputs.isEmpty())) {
         writePlugins(outputs, outFile, OUTPUTSYAML);
       }
     }
@@ -695,7 +706,17 @@ class FLBConverter {
       info("InputFile:" + inFileName + " --> " + outFileName);
       consumeClassicFile(new BufferedReader(fr));
 
-      info("Inputs:" + inputs.size() + NL + "Filters:" + filters.size() + NL + "Outputs:" + outputs.size() + NL);
+      info("Plugin stats:");
+      if (inputs != null) {
+        info("Inputs:" + inputs.size());
+      }
+      if (outputs != null) {
+        info("Outputs:" + outputs.size());
+      }
+      if (filters != null) {
+        info("Filters:" + filters.size());
+      }
+      info("---" + NL);
 
       outFile = new BufferedWriter(new FileWriter(outFileName));
       writePipelineOutput(outFile);
@@ -809,6 +830,24 @@ class FLBConverter {
   }
 
   /**
+   * Cleans up a string by trimming if not null. If the result of trim is 0 length
+   * string - return as null
+   * 
+   * @param in the string to clean
+   * @return cleaned string or null
+   */
+  private static String cleanStr(String in) {
+    if (in == null) {
+      return in;
+    }
+    in = in.trim();
+    if (in.length() == 0) {
+      return null;
+    }
+    return in;
+  }
+
+  /**
    * 
    * The app's name drives the execution of processing one or more classic format
    * files getting the inputfile from one of several different sources. It
@@ -834,17 +873,6 @@ class FLBConverter {
       BufferedReader br = null;
       FileReader fr = null;
 
-      if (conversionList.exists()) {
-
-        debug("found conversion list file");
-        fr = new FileReader(conversionList);
-        br = new BufferedReader(fr);
-        inFileName = br.readLine().trim();
-        debug("Conversion list file points to:" + inFileName);
-      } else {
-        debug("No conversion list, looked for - " + conversionList.getPath());
-      }
-
       if ((inFileName == null) && (args != null) && (args.length != 0)) {
         inFileName = args[0];
       }
@@ -852,14 +880,35 @@ class FLBConverter {
         inFileName = System.getenv(FLB_CLASSIC_FN);
         if (inFileName == null) {
           debug("No env var");
+        } else if (inFileName.length() == 0) {
+          debug("Env var is empty");
+          inFileName = null;
         }
+      }
+
+      if ((inFileName == null) && (conversionList.exists())) {
+
+        debug("found conversion list file");
+        fr = new FileReader(conversionList);
+
+        br = new BufferedReader(fr);
+        inFileName = cleanStr(br.readLine());
+
+        if (inFileName != null) {
+          more = true;
+        }
+        debug("Conversion list file points to:" + inFileName);
+      } else {
+        debug("No conversion list, looked for - " + conversionList.getPath());
       }
 
       while (inFileName != null) {
         inFileName = getPathPrefix() + inFileName;
-        inputs = new ArrayList<Plugin>();
-        outputs = new ArrayList<Plugin>();
-        filters = new ArrayList<Plugin>();
+        inputs = null;
+        outputs = null;
+        filters = null;
+        service = null;
+        includes = null;
 
         if (checkReportToFile()) {
           File reportFile = new File(getOutFile(inFileName) + REPORT_EXTN);
@@ -869,7 +918,8 @@ class FLBConverter {
         processor(inFileName, getOutFile(inFileName));
 
         if (more) {
-          inFileName = br.readLine().trim();
+          inFileName = cleanStr(br.readLine());
+          debug("Conversion list file NOW points to:" + inFileName);
         } else {
           inFileName = null;
         }
