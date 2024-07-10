@@ -65,6 +65,8 @@ class FLBConverter {
   private static final String OUTPUTCLASSIC = "[OUTPUT]";
   private static final String INPUTCLASSIC = "[INPUT]";
   private static final String SERVICECLASSIC = "[SERVICE]";
+  private static final String INCLUDECLASSIC = "@include";
+
   private static final String OUTPUTSYAML = "outputs";
   private static final String FILTERSYAML = "filters";
   private static final String INPUTSYAML = "inputs";
@@ -161,7 +163,7 @@ class FLBConverter {
     private static final String WILDCARD = "*";
     private static final String DUMMYATTR = "dummy";
     private static final String COMMENT = "#";
-    private static final String INCLUDE = "@include";
+    private static final String INCLUDE = INCLUDE;
     private static final String NAMEATTR = "name";
     private static final String SEPARATOR = " ";
     static final int PLUGININDENT = 1;
@@ -575,7 +577,7 @@ class FLBConverter {
       debug("consume [" + lineCount + "]:" + line);
 
       if (line.length() > 0) {
-        if (line.toLowerCase().startsWith("@include")) {
+        if (line.toLowerCase().startsWith(INCLUDECLASSIC)) {
           if (includes == null) {
             includes = new IncludesPlugin(line, lineCount);
           } else {
