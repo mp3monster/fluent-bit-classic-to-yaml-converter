@@ -1,0 +1,17 @@
+pipeline:
+  inputs:
+    - name: http
+      port: 9881
+      tag: input1
+      listen: 0.0.0.0
+
+  outputs:
+    - name: http
+      tls.verify: false
+      tls.ca_file: you.ca_file
+      self_hostname: localhost
+      tls.crt_file: your.crt_file
+      tls.key_file: your.key_file
+      empty_shared_key: empty shared key
+      match: "*"
+      shared_key: your-shared-key

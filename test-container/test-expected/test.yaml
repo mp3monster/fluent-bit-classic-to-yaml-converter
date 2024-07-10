@@ -5,7 +5,7 @@ service:
 
 #INCLUDES:
   #@include: aFile.conf
-  #@includes: blah.blah
+  #@include: blah.blah
 
 
 pipeline:
@@ -32,7 +32,7 @@ pipeline:
 
     - name:  dummy
       dummy: '{   "time": "12/May/2023:08:05:52 +0000",   "remote_ip": "10.4.72.163",   "remote_user": "-",   "request": {     "verb": "GET",     "path": " /downloads/product_2",     "protocol": "HTTP",     "version": "1.1"   },   "response": 304}'
-      #funy stuff
+      #funny stuff
       tag: dummy6
       Buffer_Size:: 100mb
 

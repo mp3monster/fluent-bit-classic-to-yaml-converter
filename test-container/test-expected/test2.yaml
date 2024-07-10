@@ -1,0 +1,30 @@
+service:
+  parsers_file: /bin/fluent-bit/parsers.conf
+  flush: 5
+
+pipeline:
+  inputs:
+    - name: tail
+      path: /var/log/containers/*.log
+      parser: docker
+      tag: kube.*
+
+  filters:
+    - name: kubernetes
+      kube_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      merge_log_trim: on
+      kube_CA_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      merge_log: on
+      match: kube.*
+      use_journal: off
+      annotations: on
+      kube_tag_prefix: kube.var.log.containers.
+      merge_log_key: log_processed
+      cache_use_docker_id: on
+      labels: on
+      kube_URL: https://kubernetes.default.svc:443
+      kube_meta_cache_TTL: 60s
+
+  outputs:
+    - name: stdout
+      match: "*"
