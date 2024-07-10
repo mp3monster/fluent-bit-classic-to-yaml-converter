@@ -1,0 +1,1 @@
+docker run -v ./../test:/vol/conf --rm -t flb-converter
