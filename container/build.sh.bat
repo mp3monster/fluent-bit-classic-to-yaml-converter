@@ -1,0 +1,1 @@
+docker build . --no-cache --build-arg="RELEASE=main" -t flb-converter

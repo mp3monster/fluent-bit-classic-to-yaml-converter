@@ -1,0 +1,1 @@
+docker run --rm -t flb-converter-regression
