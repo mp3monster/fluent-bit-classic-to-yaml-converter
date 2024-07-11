@@ -51,26 +51,33 @@ class FLBConverter {
   private static final String FLB_IDIOMATICFORM_HELP = "When set the attributev names are converted to use the Kubernmetes idiomatic format";
 
   /**
-   * Constants post fixed with CKLASSIC are strings we search in the classic
+   * Constants post fixed with CLASSIC are strings we search in the classic
    * format files
    * The post fixed names with YAML are the labels used in the YAML configuration
    * file
    */
-  private static final String NL = "\n";
-  private static final String TRUE = "true";
-  private static final String REPORT_EXTN = ".report";
-  private static final String PIPELINEYAMLLBL = "pipeline:\n";
-  private static final String SERVICEYAMLLBL = "service:\n";
   private static final String FILTERCLASSIC = "[FILTER]";
   private static final String OUTPUTCLASSIC = "[OUTPUT]";
   private static final String INPUTCLASSIC = "[INPUT]";
   private static final String SERVICECLASSIC = "[SERVICE]";
   private static final String INCLUDECLASSIC = "@include";
 
+  private static final String NL = "\n";
+  private static final String TRUE = "true";
+  private static final String REPORT_EXTN = ".report";
+  private static final String PIPELINEYAMLLBL = "pipeline:\n";
+
+  /**
+   * strings to use in the YAML file
+   */
   private static final String OUTPUTSYAML = "outputs";
   private static final String FILTERSYAML = "filters";
   private static final String INPUTSYAML = "inputs";
+  private static final String SERVICEYAMLLBL = "service:\n";
 
+  /**
+   * log message prefixes
+   */
   private static final String INFO_LBL = "info:";
   private static final String DEBUG_LBL = "DEBUG:";
   private static final String ERROR_LBL = "ERROR:";
@@ -745,7 +752,7 @@ class FLBConverter {
     }
   }
 
-  /*
+  /**
    * Generates the current date and time as a string
    */
   static String getDateStr() {
