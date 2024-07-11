@@ -13,5 +13,5 @@ pipeline:
       tls.crt_file: your.crt_file
       tls.key_file: your.key_file
       empty_shared_key: empty shared key
-      match: "*"
+      match: '*'
       shared_key: your-shared-key

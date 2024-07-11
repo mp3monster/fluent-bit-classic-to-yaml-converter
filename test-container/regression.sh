@@ -1,72 +1,28 @@
-echo -- Test 1 --
-# set any environment configs for this test. Change the conversion.list as needed
-java FLBConverter.java ./test-src/test.conf
-diff -B ./test-expected/test.yaml ./test-src/test.yaml >> ./test-expected/test1-diff.txt
-
-FILE=./test-expected/test1-diff.txt
-
-if [[ ! -s $FILE ]] ; then
-  echo Test 1 passed
-else
-  cat $FILE
-  echo Test 1 failed
-  exit 1
-fi
+passed=true
+# -- Test 1 --
+source regression-test1.sh
 
 # ---- end of test 1 ----
 
-echo -- Test 2 --
-# set any environment configs for this test. Change the conversion.list as needed
-export FLB_PATH_PREFIX=./test-src/
-java FLBConverter.java 
-diff -B ./test-expected/test2.yaml ./test-src/test2.yaml >> ./test-expected/test2-diff.txt
-diff -B ./test-expected/test3.yaml ./test-src/test3.yaml >> ./test-expected/test3-diff.txt
-
-FILE=./test-expected/test2-diff.txt
-
-if [[ ! -s $FILE ]] ; then
-  echo Test 2a passed
-else
-  cat $FILE
-  echo Test 2a failed
-  exit 1
-fi
-
-FILE=./test-expected/test3-diff.txt
-
-if [[ ! -s $FILE ]] ; then
-  echo Test 2b passed
-else
-  cat $FILE
-  echo Test 2b failed
-  exit 1
+# -- Test 2 --
+if $passed; then
+  source regression-test2.sh
 fi
 # ---- end of test 2 ----
 
-echo -- Test 3 --
-# set any environment configs for this test. Change the conversion.list as needed
-export FLB_IDIOMATICFORM=true
-java FLBConverter.java ./test-src/test4.conf
-diff -B ./test-expected/test.yaml ./test-src/test4.yaml >> ./test-expected/test4-diff.txt
-
-FILE=./test-expected/test4-diff.txt
-
-if [[ ! -s $FILE ]] ; then
-  echo Test 3 passed
-else
-  cat $FILE
-  echo Test 3 failed
-  exit 1
+# -- Test 3 --
+if $passed; then
+  source regression-test3.sh
 fi
-
 # ---- end of test 3 ----
 
 echo
 echo
-echo SUCCESS
+echo Completed - passed == $passed
 echo
 echo -- summary of files --
 echo Expected contains ...
 ls -al ./test-expected/
+echo 
 echo Source contains ...
 ls -al ./test-src/

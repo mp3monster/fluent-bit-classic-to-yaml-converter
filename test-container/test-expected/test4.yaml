@@ -3,18 +3,12 @@ service:
   logLevel: debug
 
 pipeline:
-  inputs:
-    - name: http
-      port: 9881
-      tag: input1
-      listen: 0.0.0.0
-
   outputs:
     - name: http
       sharedKey: your-shared-key
       tls.verify: false
       tls.keyFile: your.key_file
-      match: "*"
+      match: '*'
       tls.crtFile: your.crt_file
       emptySharedKey: empty shared key
       selfHostname: localhost
