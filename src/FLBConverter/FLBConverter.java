@@ -514,7 +514,7 @@ class FLBConverter {
     if (currentPlugin != null) {
       switch (currentPlugin.pluginType) {
         case FILTER:
-          if (outputs == null) {
+          if (filters == null) {
             filters = new ArrayList<Plugin>();
           }
           filters.add(currentPlugin);
