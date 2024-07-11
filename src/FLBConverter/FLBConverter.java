@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 /**
- * This is the tools main chalss - so has the main methods etc
+ * This is the tools main class - so has the main methods etc
  */
 class FLBConverter {
 
@@ -104,6 +104,12 @@ class FLBConverter {
    */
   static class HashMapArray extends HashMap<String, ArrayList<String>> {
   }
+
+  private static SpecialPlugin service = null;
+  private static SpecialPlugin includes = null;
+  private static ArrayList<Plugin> inputs = null;
+  private static ArrayList<Plugin> outputs = null;
+  private static ArrayList<Plugin> filters = null;
 
   /**
    * Writes a debug message if debug is allowed. If the report file is setup
@@ -455,6 +461,9 @@ class FLBConverter {
    * attribute
    */
   static class ServicePlugin extends SpecialPlugin {
+    /**
+     * default constructor which will push down the plugin type
+     */
     public ServicePlugin() {
       super(PluginType.SERVICE);
     }
@@ -486,7 +495,10 @@ class FLBConverter {
     }
 
     /**
-     * Provide identation that reflects the service block
+     * Provide identation that reflects the service block. Using space characters as
+     * YAML doesn't allow tab characters
+     * 
+     * @return the indentation string
      */
     @Override
     String indenter(int depth) {
@@ -503,12 +515,6 @@ class FLBConverter {
     }
 
   }
-
-  private static SpecialPlugin service = null;
-  private static SpecialPlugin includes = null;
-  private static ArrayList<Plugin> inputs = null;
-  private static ArrayList<Plugin> outputs = null;
-  private static ArrayList<Plugin> filters = null;
 
   /**
    * Depending upon the the label in the classic file, we need to decide which
@@ -754,6 +760,8 @@ class FLBConverter {
 
   /**
    * Generates the current date and time as a string
+   * 
+   * @return the date time in a formatted string
    */
   static String getDateStr() {
     DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
@@ -798,6 +806,8 @@ class FLBConverter {
   /**
    * Gets the path prefix env var if set. Then if it is not terminated with slash
    * we add a slash.
+   * 
+   * @return the prefix path
    */
   private static String getPathPrefix() {
     String pathPrefix = System.getenv(FLB_PATH_PREFIX);
@@ -822,7 +832,7 @@ class FLBConverter {
   /**
    * Checks for the idomatic form configuration and sets the flag
    * 
-   * @return
+   * @return flag indicating whether to use idiomatic form
    */
   private static boolean useIdiomatricForm() {
     boolean flag = false;
@@ -864,7 +874,7 @@ class FLBConverter {
    * Each new file is processed we reset the constructs to ensure there isn't any
    * accidental cross contamination
    * 
-   * @param args
+   * @param args the command line args
    */
   public static void main(String[] args) {
     if ((args != null) && (args.length > 0) && (args[0].trim().equalsIgnoreCase(HELP))) {
