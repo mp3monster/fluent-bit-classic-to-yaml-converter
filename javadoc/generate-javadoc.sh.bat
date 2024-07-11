@@ -1,0 +1,1 @@
+javadoc -private -author -doctitle "Fluent Bit Classic to YAML converter" -windowtitle "Fluent Bit Classic to YAML converter" -quiet  ..\src\FLBConverter\FLBConverter.java
