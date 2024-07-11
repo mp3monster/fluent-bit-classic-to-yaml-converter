@@ -163,7 +163,6 @@ class FLBConverter {
     private static final String WILDCARD = "*";
     private static final String DUMMYATTR = "dummy";
     private static final String COMMENT = "#";
-    private static final String INCLUDE = INCLUDE;
     private static final String NAMEATTR = "name";
     private static final String SEPARATOR = " ";
     static final int PLUGININDENT = 1;
@@ -230,7 +229,7 @@ class FLBConverter {
     static boolean checkForInclusion(String line, int lineNo) {
       boolean found = false;
       String tempLine = line.toLowerCase();
-      if (tempLine.contains(INCLUDE)) {
+      if (tempLine.contains(INCLUDECLASSIC)) {
         info("Warning: @include found at line " + lineNo + "  >>  " + line);
         found = true;
       }
