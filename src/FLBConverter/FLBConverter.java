@@ -648,35 +648,32 @@ class FLBConverter {
    * @throws IOException any io errors should lead to us bailing
    */
   private static void writePipelineOutput(BufferedWriter outFile) throws IOException {
-    if (service != null) {
-      if ((service != null) && (service.attributeCountByType() > 0)) {
-        outFile.write(SERVICEYAMLLBL);
-        outFile.write(service.write());
-      }
-      if ((includes != null) && (includes.attributeCountByType() > 0)) {
-        outFile.write(NL);
-        outFile.write(INCLUDES_LBL);
-        outFile.write(NL);
-        outFile.write(includes.write());
-      }
-
-      outFile.write(NL);
-      outFile.write(PIPELINEYAMLLBL);
-
-      if ((inputs != null) && (!inputs.isEmpty())) {
-        writePlugins(inputs, outFile, INPUTSYAML);
-      }
-
-      if ((filters != null) && (!filters.isEmpty())) {
-        writePlugins(filters, outFile, FILTERSYAML);
-      }
-
-      if ((outputs != null) && (!outputs.isEmpty())) {
-        writePlugins(outputs, outFile, OUTPUTSYAML);
-      }
+    if ((service != null) && (service.attributeCountByType() > 0)) {
+      outFile.write(SERVICEYAMLLBL);
+      outFile.write(service.write());
     }
-    outFile.flush();
-    outFile.close();
+    if ((includes != null) && (includes.attributeCountByType() > 0)) {
+      outFile.write(NL);
+      outFile.write(INCLUDES_LBL);
+      outFile.write(NL);
+      outFile.write(includes.write());
+    }
+
+    outFile.write(NL);
+    outFile.write(PIPELINEYAMLLBL);
+
+    if ((inputs != null) && (!inputs.isEmpty())) {
+      writePlugins(inputs, outFile, INPUTSYAML);
+    }
+
+    if ((filters != null) && (!filters.isEmpty())) {
+      writePlugins(filters, outFile, FILTERSYAML);
+    }
+
+    if ((outputs != null) && (!outputs.isEmpty())) {
+      writePlugins(outputs, outFile, OUTPUTSYAML);
+    }
+
   }
 
   /**
@@ -707,9 +704,10 @@ class FLBConverter {
    * @param outFileName name of the file we're going to write YAML to
    */
   private static void processor(String inFileName, String outFileName) {
-    getOutFile(inFileName);
     BufferedWriter outFile = null;
+    BufferedReader br = null;
     FileReader fr = null;
+    FileWriter fwr = null;
     try {
       File inFile = new File(inFileName);
       if (!inFile.exists()) {
@@ -718,7 +716,8 @@ class FLBConverter {
       }
       fr = new FileReader(inFile);
       info("InputFile:" + inFileName + " --> " + outFileName);
-      consumeClassicFile(new BufferedReader(fr));
+      br = new BufferedReader(fr);
+      consumeClassicFile(br);
 
       info("Plugin stats:");
       if (inputs != null) {
@@ -732,14 +731,18 @@ class FLBConverter {
       }
       info("---" + NL);
 
-      outFile = new BufferedWriter(new FileWriter(outFileName));
+      fwr = new FileWriter(outFileName);
+      outFile = new BufferedWriter(fwr);
       writePipelineOutput(outFile);
+      outFile.flush();
+      outFile.close();
+      fwr.close();
+      br.close();
       fr.close();
 
     } catch (Exception err) {
-      err(err.toString());
+      err("Processor error: " + err.toString());
       err.printStackTrace();
-
     } finally {
       try {
         if (outFile != null) {
@@ -866,6 +869,86 @@ class FLBConverter {
   }
 
   /**
+   * Process the conversion.list file building the files into an arrayList of file
+   * names
+   * 
+   * @return a list of files or null
+   */
+  private static ArrayList<String> conversionListFiles() {
+    ArrayList<String> conListFiles = null;
+    File conversionList = new File(getPathPrefix() + CONVERSION_LIST);
+
+    if (conversionList.exists()) {
+      conListFiles = new ArrayList<String>();
+      try {
+        FileReader fr = new FileReader(conversionList);
+        BufferedReader br = new BufferedReader(fr);
+        debug("found conversion list file");
+        String inFileName = null;
+        while ((inFileName = cleanStr(br.readLine())) != null) {
+          conListFiles.add(inFileName);
+          debug("ConversionList identified filename:" + inFileName);
+        }
+        br.close();
+        fr.close();
+      } catch (IOException ioErr) {
+        err("IO Error processing conversion list:" + ioErr.toString());
+      }
+      if (conListFiles.isEmpty()) {
+        conListFiles = null;
+      }
+
+    }
+
+    return conListFiles;
+  }
+
+  /**
+   * Retrieve the name of the file to process from the environment variable.
+   * Return in a list of files or null
+   * 
+   * @return list with the file name or null
+   */
+  private static ArrayList<String> envFiles() {
+    ArrayList<String> envFiles = null;
+    String inFileName = System.getenv(FLB_CLASSIC_FN);
+    if (inFileName == null) {
+      debug("No env var");
+    } else {
+      inFileName = inFileName.trim();
+      if (inFileName.length() == 0) {
+        debug("Env var is empty");
+        inFileName = null;
+      }
+    }
+    if (inFileName != null) {
+      debug("Env file set to: " + inFileName);
+      envFiles = new ArrayList<String>();
+      envFiles.add(inFileName);
+    }
+    return envFiles;
+  }
+
+  /**
+   * Return a list of files that may be included in the args
+   * 
+   * @TODO extend so that we can handle multiple CLI files
+   * @param args command line args
+   * @return list of filenames or null
+   */
+  private static ArrayList<String> cliFiles(String[] args) {
+    ArrayList<String> cliFiles = null;
+    if ((args != null) && (args.length > 0)) {
+      String inFileName = args[0].trim();
+      if ((!inFileName.equalsIgnoreCase(HELP)) && (inFileName.length() > 0)) {
+        cliFiles = new ArrayList<String>();
+        cliFiles.add(inFileName);
+      }
+    }
+    return cliFiles;
+  }
+
+  /**
    * 
    * The app's name drives the execution of processing one or more classic format
    * files getting the inputfile from one of several different sources. It
@@ -881,73 +964,51 @@ class FLBConverter {
       printHelp();
       System.exit(0);
     }
+    ArrayList<String> filesList = null;
+
     info("Fluent Bit Converter starting ...");
     checkDebug();
     useIdiomatricForm();
-    String inFileName = null;
     try {
       boolean more = false;
-      File conversionList = new File(getPathPrefix() + CONVERSION_LIST);
-      BufferedReader br = null;
-      FileReader fr = null;
 
-      if ((inFileName == null) && (args != null) && (args.length != 0)) {
-        inFileName = args[0];
+      filesList = cliFiles(args);
+      if (filesList == null) {
+        filesList = envFiles();
       }
-      if (inFileName == null) {
-        inFileName = System.getenv(FLB_CLASSIC_FN);
-        if (inFileName == null) {
-          debug("No env var");
-        } else if (inFileName.length() == 0) {
-          debug("Env var is empty");
-          inFileName = null;
-        }
+      if (filesList == null) {
+        filesList = conversionListFiles();
       }
 
-      if ((inFileName == null) && (conversionList.exists())) {
+      if (filesList != null) {
+        String inFileName = null;
+        Iterator<String> iter = filesList.iterator();
+        while (iter.hasNext()) {
+          inFileName = getPathPrefix() + iter.next();
+          debug("Preparing for " + inFileName);
+          inputs = null;
+          outputs = null;
+          filters = null;
+          service = null;
+          includes = null;
 
-        debug("found conversion list file");
-        fr = new FileReader(conversionList);
+          if (checkReportToFile()) {
+            File reportFile = new File(getOutFile(inFileName) + REPORT_EXTN);
+            converterReport = new FileWriter(reportFile);
+            converterReport.write("Execution date:" + getDateStr() + NL);
+          }
+          processor(inFileName, getOutFile(inFileName));
 
-        br = new BufferedReader(fr);
-        inFileName = cleanStr(br.readLine());
-
-        if (inFileName != null) {
-          more = true;
-        }
-        debug("Conversion list file points to:" + inFileName);
-      } else {
-        debug("No conversion list, looked for - " + conversionList.getPath());
-      }
-
-      while (inFileName != null) {
-        inFileName = getPathPrefix() + inFileName;
-        inputs = null;
-        outputs = null;
-        filters = null;
-        service = null;
-        includes = null;
-
-        if (checkReportToFile()) {
-          File reportFile = new File(getOutFile(inFileName) + REPORT_EXTN);
-          converterReport = new FileWriter(reportFile);
-          converterReport.write("Execution date:" + getDateStr() + NL);
-        }
-        processor(inFileName, getOutFile(inFileName));
-
-        if (more) {
-          inFileName = cleanStr(br.readLine());
-          debug("Conversion list file NOW points to:" + inFileName);
-        } else {
-          inFileName = null;
-        }
-        if (converterReport != null) {
-          converterReport.flush();
-          converterReport.close();
-          converterReport = null;
+          if (converterReport != null) {
+            converterReport.flush();
+            converterReport.close();
+            converterReport = null;
+          }
         }
       }
-    } catch (Exception err) {
+    } catch (
+
+    Exception err) {
       err(err.getMessage());
       err.printStackTrace();
     }
