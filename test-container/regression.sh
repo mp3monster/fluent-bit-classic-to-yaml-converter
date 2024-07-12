@@ -17,12 +17,14 @@ fi
 # ---- end of test 3 ----
 
 echo
-echo
-echo Completed - passed == $passed
-echo
 echo -- summary of files --
 echo Expected contains ...
 ls -al ./test-expected/
 echo 
 echo Source contains ...
 ls -al ./test-src/
+echo
+echo ------
+echo
+echo Completed - passed == $passed
+echo
