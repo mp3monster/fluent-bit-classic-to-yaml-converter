@@ -19,7 +19,8 @@ import java.io.FileNotFoundException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
+
 import java.util.Iterator;
 
 /**
@@ -102,7 +103,7 @@ class FLBConverter {
    * allows us to look up attribute names, but there are scenarios where an
    * attribute key can be repeated.
    */
-  static class HashMapArray extends HashMap<String, ArrayList<String>> {
+  static class HashMapArray extends LinkedHashMap<String, ArrayList<String>> {
   }
 
   private static SpecialPlugin service = null;
@@ -320,8 +321,10 @@ class FLBConverter {
       if (sepPos > 0) {
         attributeName = attribute.substring(0, sepPos).trim();
         if (hasInclusion) {
-          attributeName = "#" + attributeName;
-          // its not already a comment - let's comment out the inclusion
+          if (!attributeName.startsWith(COMMENT)) {
+            attributeName = "#" + attributeName;
+            // its not already a comment - let's comment out the inclusion
+          }
         }
         attributeName = toIdiomaticForm(attributeName);
         // we need to handle the name attribute slightly differently
