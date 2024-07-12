@@ -932,7 +932,8 @@ class FLBConverter {
   /**
    * Return a list of files that may be included in the args
    * 
-   * @TODO extend so that we can handle multiple CLI files
+   * TODO extend so that we can handle multiple CLI files
+   * 
    * @param args command line args
    * @return list of filenames or null
    */
