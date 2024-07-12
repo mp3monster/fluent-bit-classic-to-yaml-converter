@@ -1,6 +1,6 @@
 service:
-  parsers_file: ${FLUENTBIT_HOME}/conf/parsers.conf
   flush: 1
+  parsers_file: ${FLUENTBIT_HOME}/conf/parsers.conf
   log_level: info
 
 #INCLUDES:
@@ -31,22 +31,22 @@ pipeline:
       tag: dummy5
 
     - name: dummy
-      dummy: '{   "time": "12/May/2023:08:05:52 +0000",   "remote_ip": "10.4.72.163",   "remote_user": "-",   "request": {     "verb": "GET",     "path": " /downloads/product_2",     "protocol": "HTTP",     "version": "1.1"   },   "response": 304}'
-      Buffer_Size: 100mb
       #funny stuff
+      dummy: '{   "time": "12/May/2023:08:05:52 +0000",   "remote_ip": "10.4.72.163",   "remote_user": "-",   "request": {     "verb": "GET",     "path": " /downloads/product_2",     "protocol": "HTTP",     "version": "1.1"   },   "response": 304}'
       tag: dummy6
+      Buffer_Size: 100mb
 
   filters:
     - name: grep
+      match: dummy1
       regex: request['protocol'] ^(HTTP)
       regex: remote_ip (11)
-      match: dummy1
       logical_op: or
 
     - name: grep
+      match: dummy2
       regex: request['protocol'] ^(HTTP)
       regex: remote_ip (11)
-      match: dummy2
       logical_op: and
 
     - name: grep
@@ -62,16 +62,15 @@ pipeline:
       logical_op: and
 
     - name: grep
-      regex: remote_ip (11)
       match: dummy5
       exclude: request['protocol'] ^(HTTP)
+      regex: remote_ip (11)
 
     - name: grep
-      regex: request['protocol'] ^(HTTP)
       match: dummy6
+      regex: request['protocol'] ^(HTTP)
       exclude: remote_ip (11)
 
   outputs:
     - name: stdout
       match: '*'
-

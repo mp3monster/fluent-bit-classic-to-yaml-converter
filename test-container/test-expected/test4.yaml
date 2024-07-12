@@ -5,11 +5,11 @@ service:
 pipeline:
   outputs:
     - name: http
-      sharedKey: your-shared-key
-      tls.verify: false
-      tls.keyFile: your.key_file
       match: '*'
-      tls.crtFile: your.crt_file
+      sharedKey: your-shared-key
       emptySharedKey: empty shared key
       selfHostname: localhost
+      tls.verify: false
       tls.caFile: you.ca_file
+      tls.crtFile: your.crt_file
+      tls.keyFile: your.key_file
