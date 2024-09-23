@@ -48,8 +48,13 @@ class FLBConverter {
   private static final String FLB_CLASSIC_FN = "FLBClassicFN";
   private static final String FLB_CLASSIC_FN_HELP = "This environment variable can be used to identify a single conversion";
 
+  private static final String FLB_SOURCETYPE = "FLB_SOURCETYPE";
+  private static final String FLB_SOURCETYPE_HELP = "When set to be FLUENTD we will consume the input as a Fluentd configuration file";
+
   private static final String FLB_IDIOMATICFORM = "FLB_IDIOMATICFORM";
-  private static final String FLB_IDIOMATICFORM_HELP = "When set the attributev names are converted to use the Kubernmetes idiomatic format";
+  private static final String FLB_IDIOMATICFORM_HELP = "When set the attribute names are converted to use the Kubernetes idiomatic format";
+
+  private static final String COMMENT = "#";
 
   /**
    * Constants post fixed with CLASSIC are strings we search in the classic
@@ -67,6 +72,24 @@ class FLBConverter {
   private static final String TRUE = "true";
   private static final String REPORT_EXTN = ".report";
   private static final String PIPELINEYAMLLBL = "pipeline:\n";
+
+  /**
+   * Fluentd constants
+   */
+  private static final String INPUTFLUENTDSTART = "<SOURCE>";
+  private static final String INPUTFLUENTDEND = "</SOURCE>";
+  private static final String OUTPUTFLUENTDSTART = "<STORE>";
+  private static final String OUTPUTFLUENTDEND = "</STORE>";
+  private static final String FILTERFLUENTDSTART = "<FILTER";
+  private static final String FILTERFLUENTDEND = "</FILTER>";
+  private static final String MATCHFLUENTDSTART = "<MATCH";
+  private static final String MATCHFLUENTDEND = "</MATCH>";
+  private static final String PIPELINEFLUENTDSTART = "<LABEL";
+  private static final String PIPELINEFLUENTDEND = "</LABEL>";
+  private static final String SERVICEFLUENTDSTART = "<SYSTEM>";
+  private static final String SERVICEFLUENTDEND = "</SYSTEM>";
+  private static final String FLUENTD = "fluentd";
+  private static final String INCLUDEFLUENTD = "@INCLUDE";
 
   /**
    * strings to use in the YAML file
@@ -95,8 +118,15 @@ class FLBConverter {
    * Define the different plugin types.
    */
   enum PluginType {
-    INPUT, OUTPUT, FILTER, SERVICE, INCLUDES, SET
+    INPUT, OUTPUT, FILTER, SERVICE, INCLUDES, SET, NESTED
   };
+
+  enum SourceType {
+    CLASSIC, FLUENTD
+  };
+
+  static class PluginList extends ArrayList<Plugin> {
+  }
 
   /**
    * We've defined this structure to simplify asnd ensure consistency. The Hashamp
@@ -106,11 +136,26 @@ class FLBConverter {
   static class HashMapArray extends LinkedHashMap<String, ArrayList<String>> {
   }
 
+  // static class DirectivesMapArray extends LinkedListArray<Directive> {
+  // }
+
+  static class Directive {
+
+    // childDirectives DirectivesMapArray = null;
+    SpecialPlugin service;
+    SpecialPlugin includes;
+    PluginList inputs = null;
+    PluginList outputs = null;
+    PluginList filters = null;
+  }
+
   private static SpecialPlugin service = null;
   private static SpecialPlugin includes = null;
-  private static ArrayList<Plugin> inputs = null;
-  private static ArrayList<Plugin> outputs = null;
-  private static ArrayList<Plugin> filters = null;
+  private static PluginList inputs = null;
+  private static PluginList outputs = null;
+  private static PluginList filters = null;
+
+  // static DirectivesMapArray fuentdPipelines = null;
 
   /**
    * Writes a debug message if debug is allowed. If the report file is setup
@@ -174,10 +219,20 @@ class FLBConverter {
    * of output correct
    */
   static class Plugin {
+
+    private static String getNameStr() {
+      String ans = "name";
+      if (isFluentdSource()) {
+        ans = "@type";
+      }
+      // debug("getName str is " + ans);
+      return ans;
+
+    }
+
     private static final String WILDCARD = "*";
     private static final String DUMMYATTR = "dummy";
-    private static final String COMMENT = "#";
-    private static final String NAMEATTR = "name";
+    private static final String NAMEATTR = getNameStr();
     private static final String SEPARATOR = " ";
     static final int PLUGININDENT = 1;
     static final int NAMEINDENT = 2;
@@ -260,6 +315,7 @@ class FLBConverter {
     private String toIdiomaticForm(String attributeName) {
 
       if (!useIdiomaticForm) {
+        // debug("idiomatic form switched off");
         return attributeName;
       }
       attributeName = attributeName.toLowerCase();
@@ -311,12 +367,15 @@ class FLBConverter {
       }
       hasInclusion = checkForInclusion(attribute, lineNo);
 
+      debug("add:" + attribute);
+
       String attributeName = null;
       int sepPos = 0;
       if (attribute.startsWith(COMMENT)) {
         sepPos = 1;
       } else {
         sepPos = attribute.indexOf(SEPARATOR);
+        debug("add separator pos at:" + sepPos);
       }
       if (sepPos > 0) {
         attributeName = attribute.substring(0, sepPos).trim();
@@ -327,12 +386,15 @@ class FLBConverter {
           }
         }
         attributeName = toIdiomaticForm(attributeName);
+        debug("add idiomatic name=" + attributeName);
         // we need to handle the name attribute slightly differently
         if (attributeName.equalsIgnoreCase(NAMEATTR)) {
           this.name = attribute.substring(sepPos).trim();
+          debug("identified name:" + this.name);
         } else {
           // determine whether there is a wildcard involved, correct the quotations
           String attributeValue = attribute.substring(sepPos).trim();
+          debug("add attribute value" + attributeValue);
           if (attributeValue.equalsIgnoreCase(WILDCARD)) {
             attributeValue = "'*'";
           }
@@ -347,12 +409,16 @@ class FLBConverter {
             values = new ArrayList<String>();
           }
           values.add(attributeValue);
+
+          if (attributeName.startsWith("@")) {
+            // if we see the use of anything other than @INCLUDE then coment it out
+            attributeName = COMMENT + SEPARATOR + attributeName;
+          }
           attributes.put(attributeName, values);
         }
       } else {
-        info("Cant process attribute:" + attribute);
+        info("Add cant process attribute:" + attribute);
       }
-
     }
 
     /**
@@ -519,6 +585,51 @@ class FLBConverter {
 
   }
 
+  static class NestedPlugin extends SpecialPlugin {
+    /**
+     * Standard construct which will pushdown to the basse class the type of okugin
+     */
+    private Plugin parentPlugin = null;
+
+    private NestedPlugin() {
+      super(PluginType.NESTED);
+    }
+
+    /**
+     * Constructor for the includes variant - which allows us to creat
+     * 
+     * @param line   the line of source to be processed
+     * @param lineNo The lineNo reflects where this attribute originated from
+     */
+    public NestedPlugin(String line, int lineNo, Plugin parent) {
+      super(PluginType.NESTED);
+      parentPlugin = parent;
+    }
+
+    /**
+     * Provide identation that reflects the service block. Using space characters as
+     * YAML doesn't allow tab characters
+     * 
+     * @return the indentation string
+     */
+    @Override
+    String indenter(int depth) {
+      err("Asked nested plugin for indenter");
+      return "";
+    }
+
+    /**
+     * We don't want to handle a name attribute in a manner that is different to
+     * other service attributes.
+     */
+    @Override
+    String writePrefix() {
+      err("Asked nested plugin for prefix");
+      return "";
+    }
+
+  }
+
   /**
    * Depending upon the the label in the classic file, we need to decide which
    * group of plugins to add the latest definition to.
@@ -531,19 +642,19 @@ class FLBConverter {
       switch (currentPlugin.pluginType) {
         case FILTER:
           if (filters == null) {
-            filters = new ArrayList<Plugin>();
+            filters = new PluginList();
           }
           filters.add(currentPlugin);
           break;
         case INPUT:
           if (inputs == null) {
-            inputs = new ArrayList<Plugin>();
+            inputs = new PluginList();
           }
           inputs.add(currentPlugin);
           break;
         case OUTPUT:
           if (outputs == null) {
-            outputs = new ArrayList<Plugin>();
+            outputs = new PluginList();
           }
           outputs.add(currentPlugin);
           break;
@@ -564,7 +675,7 @@ class FLBConverter {
           }
           break;
         default:
-          info("Unknown plugin type");
+          info("Store plugin type - Unknown plugin type of " + currentPlugin.pluginType);
           break;
 
       }
@@ -578,7 +689,7 @@ class FLBConverter {
    * start a new plugin object, and when to add a plugin into the correct array of
    * plugins. Note we only allow one service definition
    * 
-   * @param classicFile the reader object for the classiv file
+   * @param classicFile the reader object for the classic file
    * @throws IOException if we fail to read the file properly
    */
   private static void consumeClassicFile(BufferedReader classicFile) throws IOException {
@@ -612,13 +723,102 @@ class FLBConverter {
           currentPlugin = new Plugin(PluginType.FILTER);
         } else {
           if (currentPlugin == null) {
-            info("Can't allocate process line:>" + line + "< (" + lineCount + ")");
+            info("Fluent bit Can't determine action for processing line:>" + line + "< (" + lineCount + ")");
           } else {
             currentPlugin.add(line, lineCount);
           }
         }
       }
     }
+    storePlugin(currentPlugin);
+
+  }
+
+  private static String fluentdMatch(String directive, String prefix) {
+    String returnStr = "match *";
+
+    debug("fluentdMatch directive: >" + directive + "< prefix:>" + prefix + "<");
+
+    if ((prefix == null) || (directive == null) || (!directive.endsWith(">"))) {
+      debug("fluentd match failed checks on directive " + directive + " prefix of " + prefix);
+      return returnStr;
+    }
+
+    int prefixLen = prefix.length();
+    int directiveLen = directive.length() - 1;
+    if (prefixLen < directiveLen) {
+      directive = directive.substring(prefixLen, directiveLen - 1);
+      directive = directive.trim();
+    }
+
+    if (directive.length() > 0) {
+      returnStr = "match " + directive;
+    }
+    debug("Fluentd match is " + returnStr + " from directive " + directive);
+    return returnStr;
+  }
+
+  /**
+   * This method reads the classic configuration file and handles when we need to
+   * start a new plugin object, and when to add a plugin into the correct array of
+   * plugins. Note we only allow one service definition
+   * 
+   * @param classicFile the reader object for the classiv file
+   * @throws IOException if we fail to read the file properly
+   */
+  private static void consumeFluentdFile(BufferedReader fluentdFile) throws IOException {
+    Plugin currentPlugin = null;
+    int lineCount = 0;
+    String line = null;
+    while ((line = fluentdFile.readLine()) != null) {
+      lineCount++;
+      line = line.trim();
+
+      debug("consume [" + lineCount + "]:" + line);
+
+      if (line.length() > 0) {
+        String ucLine = line.toUpperCase();
+        if (line.startsWith(COMMENT)) {
+          debug("Ignoring comment [" + lineCount + "] " + line);
+        } else if (ucLine.startsWith(INCLUDEFLUENTD)) {
+          if (includes == null) {
+            includes = new IncludesPlugin(line, lineCount);
+          } else {
+            includes.add(line, lineCount);
+          }
+        } else if (ucLine.equalsIgnoreCase(SERVICEFLUENTDSTART)) {
+          currentPlugin = new ServicePlugin();
+        } else if (ucLine.equalsIgnoreCase(INPUTFLUENTDSTART)) {
+          currentPlugin = new Plugin(PluginType.INPUT);
+        } else if (ucLine.startsWith(MATCHFLUENTDSTART)) {
+          debug("Fluentd output (match) created");
+          currentPlugin = new Plugin(PluginType.OUTPUT);
+          currentPlugin.add(fluentdMatch(line, MATCHFLUENTDSTART), lineCount);
+        } else if (ucLine.startsWith(FILTERFLUENTDSTART)) {
+          debug("Fluentd filter created");
+          currentPlugin = new Plugin(PluginType.FILTER);
+          currentPlugin.add(fluentdMatch(line, FILTERFLUENTDSTART), lineCount);
+        } else if ((ucLine.equalsIgnoreCase(INPUTFLUENTDEND)) ||
+            (ucLine.equalsIgnoreCase(OUTPUTFLUENTDEND)) ||
+            (ucLine.equalsIgnoreCase(MATCHFLUENTDEND)) ||
+            (ucLine.equalsIgnoreCase(FILTERFLUENTDEND)) ||
+            (ucLine.equalsIgnoreCase(SERVICEFLUENTDEND))) {
+          storePlugin(currentPlugin);
+          currentPlugin = null;
+        } else if (ucLine.equalsIgnoreCase(PIPELINEFLUENTDSTART)) {
+          debug("label start detected");
+        } else if (ucLine.equalsIgnoreCase(PIPELINEFLUENTDEND)) {
+          debug("label end detected");
+        } else {
+          if (currentPlugin == null) {
+            info("Fluentd Can't allocate process line:>" + line + "< (" + lineCount + ")");
+          } else {
+            currentPlugin.add(line, lineCount);
+          }
+        }
+      }
+    }
+
     storePlugin(currentPlugin);
 
   }
@@ -632,7 +832,7 @@ class FLBConverter {
    * @param label   the label for this type of plugin
    * @throws IOException thrown if there id
    */
-  private static void writePlugins(ArrayList<Plugin> plugins, BufferedWriter outFile, String label) throws IOException {
+  private static void writePlugins(PluginList plugins, BufferedWriter outFile, String label) throws IOException {
     if (!plugins.isEmpty()) {
       outFile.write("  " + label + ":\n");
       Iterator<Plugin> iter = plugins.iterator();
@@ -711,6 +911,7 @@ class FLBConverter {
     BufferedReader br = null;
     FileReader fr = null;
     FileWriter fwr = null;
+    debug("Running FLUENT BIT processor");
     try {
       File inFile = new File(inFileName);
       if (!inFile.exists()) {
@@ -733,6 +934,66 @@ class FLBConverter {
         info("Filters:" + filters.size());
       }
       info("---" + NL);
+
+      fwr = new FileWriter(outFileName);
+      outFile = new BufferedWriter(fwr);
+      writePipelineOutput(outFile);
+      outFile.flush();
+      outFile.close();
+      fwr.close();
+      br.close();
+      fr.close();
+
+    } catch (Exception err) {
+      err("Processor error: " + err.toString());
+      err.printStackTrace();
+    } finally {
+      try {
+        if (outFile != null) {
+          outFile.close();
+        }
+      } catch (IOException ioErr) {
+        err("finally err closing file\n" + ioErr.getMessage());
+      }
+      try {
+        if (fr != null) {
+          fr.close();
+        }
+      } catch (IOException ioErr) {
+        err("ioError fr err closing file reader\n" + ioErr.getMessage());
+      }
+    }
+  }
+
+  /**
+   * We don't pass the filename of the report file as this is handled by the
+   * logging methods. This method drives the core logic of scanning the Classic
+   * file format and once read runs the process of writing each plugin/directive
+   * to the output file
+   * 
+   * @param inFileName  name of the classic file to be processed
+   * 
+   * @param outFileName name of the file we're going to write YAML to
+   */
+  private static void fluentdProcessor(String inFileName, String outFileName) {
+    BufferedWriter outFile = null;
+    BufferedReader br = null;
+    FileReader fr = null;
+    FileWriter fwr = null;
+    debug("Running FLUENTD processor");
+    try {
+      File inFile = new File(inFileName);
+      if (!inFile.exists()) {
+        err("Cant locate input file:" + inFileName);
+        return;
+      }
+      fr = new FileReader(inFile);
+      info("InputFile:" + inFileName + " --> " + outFileName);
+      br = new BufferedReader(fr);
+
+      // ingest config file
+      consumeFluentdFile(br);
+      // TODO
 
       fwr = new FileWriter(outFileName);
       outFile = new BufferedWriter(fwr);
@@ -853,6 +1114,19 @@ class FLBConverter {
     return flag;
   }
 
+  /*
+   */
+  private static boolean isFluentdSource() {
+    boolean flag = false;
+    String isFluentdSourceStr = System.getenv(FLB_SOURCETYPE);
+    if ((isFluentdSourceStr != null) && (isFluentdSourceStr.trim().equalsIgnoreCase(FLUENTD))) {
+      flag = true;
+    }
+    debug("Env flag for using Fluentd form to file set to " + isFluentdSourceStr + " returning " + flag);
+
+    return flag;
+  }
+
   /**
    * Cleans up a string by trimming if not null. If the result of trim is 0 length
    * string - return as null
@@ -916,11 +1190,11 @@ class FLBConverter {
     ArrayList<String> envFiles = null;
     String inFileName = System.getenv(FLB_CLASSIC_FN);
     if (inFileName == null) {
-      debug("No env var");
+      debug("No env var for input filename");
     } else {
       inFileName = inFileName.trim();
       if (inFileName.length() == 0) {
-        debug("Env var is empty");
+        debug("Env var for filename is empty");
         inFileName = null;
       }
     }
@@ -973,8 +1247,8 @@ class FLBConverter {
     info("Fluent Bit Converter starting ...");
     checkDebug();
     useIdiomatricForm();
+    boolean isFluentd = isFluentdSource();
     try {
-      boolean more = false;
 
       filesList = cliFiles(args);
       if (filesList == null) {
@@ -1001,7 +1275,14 @@ class FLBConverter {
             converterReport = new FileWriter(reportFile);
             converterReport.write("Execution date:" + getDateStr() + NL);
           }
-          processor(inFileName, getOutFile(inFileName));
+          if (isFluentd) {
+            debug("main processing Fluentd file");
+            fluentdProcessor(inFileName, getOutFile(inFileName));
+
+          } else {
+            debug("main processing Fluent Bit file");
+            processor(inFileName, getOutFile(inFileName));
+          }
 
           if (converterReport != null) {
             converterReport.flush();
