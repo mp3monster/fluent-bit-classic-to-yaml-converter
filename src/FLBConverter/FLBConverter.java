@@ -129,7 +129,7 @@ class FLBConverter {
   }
 
   /**
-   * We've defined this structure to simplify asnd ensure consistency. The Hashamp
+   * We've defined this structure to simplify and ensure consistency. The Hashamp
    * allows us to look up attribute names, but there are scenarios where an
    * attribute key can be repeated.
    */
@@ -161,7 +161,7 @@ class FLBConverter {
    * Writes a debug message if debug is allowed. If the report file is setup
    * then we'll also add the debug message to that as well
    * 
-   * @param msg the message to write as a dubg statment
+   * @param msg the message to write as a dug statement
    */
   static void debug(String msg) {
     if (debug) {
@@ -252,6 +252,10 @@ class FLBConverter {
      */
     HashMapArray attributes = new HashMapArray();
 
+    private PluginList storePlugins = new PluginList();
+
+    private Plugin currentStoreInput = null;
+
     /**
      * Standard constructor
      * 
@@ -315,7 +319,6 @@ class FLBConverter {
     private String toIdiomaticForm(String attributeName) {
 
       if (!useIdiomaticForm) {
-        // debug("idiomatic form switched off");
         return attributeName;
       }
       attributeName = attributeName.toLowerCase();
@@ -343,6 +346,39 @@ class FLBConverter {
 
     }
 
+    /*
+     * If during the building of the object representation we have child objects
+     * (e.g. store) then
+     * we need to flatten this structure. We can't insert into the initial list as
+     * this creates a concurrent change exception
+     * so add to a new list of plugins to resolve later
+     * The first occurrence of a child can be copied into the current plugin
+     * structure. Any additional child declarations
+     * are new and we need to replicate the common config values to the child
+     */
+    public void flatten(PluginList plugins, PluginList flattenedPlugins) {
+      debug("flatten plugin - start the search - " + storePlugins.size());
+      if (!storePlugins.isEmpty()) {
+        debug("flatten plugin - found children");
+        Iterator iter = storePlugins.iterator();
+        Plugin firstChildPlugin = (Plugin) iter.next();
+
+        while (iter.hasNext()) {
+          Plugin nested = (Plugin) iter.next();
+          nested.attributes.putAll(attributes);
+          flattenedPlugins.add(nested);
+          debug("added nested plugin");
+        }
+
+        // copy down only after sorting out the other chuildren OTHERWISE the other
+        // children will end up with
+        // attributes from the 1st child
+        attributes.putAll(firstChildPlugin.attributes);
+        name = firstChildPlugin.name;
+        storePlugins = null;
+      }
+    }
+
     /**
      * 
      * Each attribute is processed into this instance of a plugin.
@@ -356,6 +392,12 @@ class FLBConverter {
      * 
      */
     public void add(String attribute, int lineNo) {
+      Plugin currentPlugin = this;
+
+      if (currentStoreInput != null) {
+        currentPlugin = currentStoreInput;
+      }
+
       boolean hasInclusion = false;
       if (attribute == null) {
         return;
@@ -371,6 +413,7 @@ class FLBConverter {
 
       String attributeName = null;
       int sepPos = 0;
+
       if (attribute.startsWith(COMMENT)) {
         sepPos = 1;
       } else {
@@ -387,42 +430,56 @@ class FLBConverter {
         }
         attributeName = toIdiomaticForm(attributeName);
         debug("add idiomatic name=" + attributeName);
+
         // we need to handle the name attribute slightly differently
         if (attributeName.equalsIgnoreCase(NAMEATTR)) {
-          this.name = attribute.substring(sepPos).trim();
+          currentPlugin.name = attribute.substring(sepPos).trim();
           debug("identified name:" + this.name);
         } else {
-          // determine whether there is a wildcard involved, correct the quotations
-          String attributeValue = attribute.substring(sepPos).trim();
-          debug("add attribute value" + attributeValue);
-          if (attributeValue.equalsIgnoreCase(WILDCARD)) {
-            attributeValue = "'*'";
-          }
-          // ensure that dummy attributes are correctly quoted
-          if ((attributeName.equalsIgnoreCase(DUMMYATTR)) && (!attributeValue.startsWith("'"))) {
-            attributeValue = "'" + attributeValue + "'";
-          }
-          ArrayList<String> values = null;
-          if (attributes.containsKey(attributeName)) {
-            values = attributes.get(attributeName);
-          } else {
-            values = new ArrayList<String>();
-          }
-          values.add(attributeValue);
-
-          if (attributeName.startsWith("@")) {
-            // if we see the use of anything other than @INCLUDE then coment it out
-            attributeName = COMMENT + SEPARATOR + attributeName;
-          }
-          attributes.put(attributeName, values);
+          addValues(attribute, attributeName, sepPos, currentPlugin);
         }
       } else {
-        info("Add cant process attribute:" + attribute);
+        if (attribute.toUpperCase().startsWith(OUTPUTFLUENTDSTART)) {
+          debug("NESTING FOUND [" + lineNo + "]");
+          currentStoreInput = new Plugin(currentPlugin.pluginType);
+        } else if (attribute.toUpperCase().startsWith(OUTPUTFLUENTDEND)) {
+          debug("NESTING end FOUND [" + lineNo + "]");
+          storePlugins.add(currentStoreInput);
+          currentStoreInput = null;
+        } else {
+          info("Add cant process attribute:" + attribute);
+        }
       }
     }
 
+    private static void addValues(String attribute, String attributeName, int sepPos, Plugin currentPlugin) {
+      // determine whether there is a wildcard involved, correct the quotations
+      String attributeValue = attribute.substring(sepPos).trim();
+      debug("add attribute value" + attributeValue);
+      if (attributeValue.equalsIgnoreCase(WILDCARD)) {
+        attributeValue = "'*'";
+      }
+      // ensure that dummy attributes are correctly quoted
+      if ((attributeName.equalsIgnoreCase(DUMMYATTR)) && (!attributeValue.startsWith("'"))) {
+        attributeValue = "'" + attributeValue + "'";
+      }
+      ArrayList<String> values = null;
+      if (currentPlugin.attributes.containsKey(attributeName)) {
+        values = currentPlugin.attributes.get(attributeName);
+      } else {
+        values = new ArrayList<String>();
+      }
+      values.add(attributeValue);
+
+      if (attributeName.startsWith("@")) {
+        // if we see the use of anything other than @INCLUDE then coment it out
+        attributeName = COMMENT + SEPARATOR + attributeName;
+      }
+      currentPlugin.attributes.put(attributeName, values);
+    }
+
     /**
-     * Provides a correctly formatted plugin name - we declare this separatelty so
+     * Provides a correctly formatted plugin name - we declare this separately so
      * anything that is handled using the plugin object such as a service can have
      * this action overridden
      * 
@@ -477,7 +534,7 @@ class FLBConverter {
     /**
      * standard constructor where we'll cascade the informas
      * 
-     * @param type the plugin type to be construb
+     * @param type the plugin type to be constructed
      */
     public SpecialPlugin(PluginType type) {
       super(type);
@@ -585,51 +642,6 @@ class FLBConverter {
 
   }
 
-  static class NestedPlugin extends SpecialPlugin {
-    /**
-     * Standard construct which will pushdown to the basse class the type of okugin
-     */
-    private Plugin parentPlugin = null;
-
-    private NestedPlugin() {
-      super(PluginType.NESTED);
-    }
-
-    /**
-     * Constructor for the includes variant - which allows us to creat
-     * 
-     * @param line   the line of source to be processed
-     * @param lineNo The lineNo reflects where this attribute originated from
-     */
-    public NestedPlugin(String line, int lineNo, Plugin parent) {
-      super(PluginType.NESTED);
-      parentPlugin = parent;
-    }
-
-    /**
-     * Provide identation that reflects the service block. Using space characters as
-     * YAML doesn't allow tab characters
-     * 
-     * @return the indentation string
-     */
-    @Override
-    String indenter(int depth) {
-      err("Asked nested plugin for indenter");
-      return "";
-    }
-
-    /**
-     * We don't want to handle a name attribute in a manner that is different to
-     * other service attributes.
-     */
-    @Override
-    String writePrefix() {
-      err("Asked nested plugin for prefix");
-      return "";
-    }
-
-  }
-
   /**
    * Depending upon the the label in the classic file, we need to decide which
    * group of plugins to add the latest definition to.
@@ -682,6 +694,24 @@ class FLBConverter {
     } else {
       debug("No plugin to store");
     }
+  }
+
+  static void flattenList(PluginList plugins) {
+    PluginList flattenedPlugins = new PluginList();
+    Iterator pluginIter = plugins.iterator();
+    while (pluginIter.hasNext()) {
+      Plugin next = (Plugin) pluginIter.next();
+      next.flatten(plugins, flattenedPlugins);
+      debug("Flattening " + next.getNameStr() + "  " + next.pluginType);
+    }
+    plugins.addAll(flattenedPlugins);
+  }
+
+  static void flattenPluginLists() {
+    debug("Flattening lists of plugins");
+    flattenList(inputs);
+    flattenList(filters);
+    flattenList(outputs);
   }
 
   /**
@@ -799,7 +829,7 @@ class FLBConverter {
           currentPlugin = new Plugin(PluginType.FILTER);
           currentPlugin.add(fluentdMatch(line, FILTERFLUENTDSTART), lineCount);
         } else if ((ucLine.equalsIgnoreCase(INPUTFLUENTDEND)) ||
-            (ucLine.equalsIgnoreCase(OUTPUTFLUENTDEND)) ||
+        // (ucLine.equalsIgnoreCase(OUTPUTFLUENTDEND)) ||
             (ucLine.equalsIgnoreCase(MATCHFLUENTDEND)) ||
             (ucLine.equalsIgnoreCase(FILTERFLUENTDEND)) ||
             (ucLine.equalsIgnoreCase(SERVICEFLUENTDEND))) {
@@ -994,6 +1024,7 @@ class FLBConverter {
       // ingest config file
       consumeFluentdFile(br);
       // TODO
+      flattenPluginLists();
 
       fwr = new FileWriter(outFileName);
       outFile = new BufferedWriter(fwr);
