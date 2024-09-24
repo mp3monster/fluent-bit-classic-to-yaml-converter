@@ -29,7 +29,7 @@ import java.util.Iterator;
 class FLBConverter {
 
   /**
-   * Constants starting FLB are relatyed to configuration of this utility
+   * Constants starting FLB are related to configuration of this utility
    */
   private static final String INCLUDES_LBL = "#INCLUDES:";
   private static final String HELP = "--help";
@@ -155,8 +155,6 @@ class FLBConverter {
   private static PluginList outputs = null;
   private static PluginList filters = null;
 
-  // static DirectivesMapArray fuentdPipelines = null;
-
   /**
    * Writes a debug message if debug is allowed. If the report file is setup
    * then we'll also add the debug message to that as well
@@ -225,7 +223,6 @@ class FLBConverter {
       if (isFluentdSource()) {
         ans = "@type";
       }
-      // debug("getName str is " + ans);
       return ans;
 
     }
@@ -279,7 +276,7 @@ class FLBConverter {
     /**
      * builds an indent string that will be accepted by YAML
      * 
-     * @param depth how many levels of indetation
+     * @param depth how many levels of indentation
      * @return the YAML suitable indentation characters
      */
     String indenter(int depth) {
@@ -436,7 +433,7 @@ class FLBConverter {
           currentPlugin.name = attribute.substring(sepPos).trim();
           debug("identified name:" + this.name);
         } else {
-          addValues(attribute, attributeName, sepPos, currentPlugin);
+          addValues(attribute, attributeName, sepPos, currentPlugin, lineNo);
         }
       } else {
         if (attribute.toUpperCase().startsWith(OUTPUTFLUENTDSTART)) {
@@ -452,7 +449,8 @@ class FLBConverter {
       }
     }
 
-    private static void addValues(String attribute, String attributeName, int sepPos, Plugin currentPlugin) {
+    private static void addValues(String attribute, String attributeName, int sepPos, Plugin currentPlugin,
+        int lineNo) {
       // determine whether there is a wildcard involved, correct the quotations
       String attributeValue = attribute.substring(sepPos).trim();
       debug("add attribute value" + attributeValue);
@@ -470,9 +468,10 @@ class FLBConverter {
         values = new ArrayList<String>();
       }
       values.add(attributeValue);
+      values.add(SEPARATOR + COMMENT + SEPARATOR + lineNo);
 
       if (attributeName.startsWith("@")) {
-        // if we see the use of anything other than @INCLUDE then coment it out
+        // if we see the use of anything other than @INCLUDE then comment it out
         attributeName = COMMENT + SEPARATOR + attributeName;
       }
       currentPlugin.attributes.put(attributeName, values);
@@ -498,25 +497,28 @@ class FLBConverter {
      */
     public String write() {
       String YAMLoutput = writePrefix();
-      Iterator<String> iter = attributes.keySet().iterator();
+      Iterator<String> attributeIter = attributes.keySet().iterator();
       String key = null;
       String line = null;
 
-      while (iter.hasNext()) {
-        key = iter.next();
+      while (attributeIter.hasNext()) {
+        key = attributeIter.next();
         ArrayList<String> multiValues = attributes.get(key);
         Iterator<String> valIter = multiValues.iterator();
         String value = null;
+        line = indenter(ATTRIBUTEINDENT) + key + ": ";
         while (valIter.hasNext()) {
           value = valIter.next();
           if (key.equals(COMMENT)) {
-            line = indenter(ATTRIBUTEINDENT) + key + value;
+            // line = indenter(ATTRIBUTEINDENT) + key + value;
+            line = line + value;
           } else {
-            line = indenter(ATTRIBUTEINDENT) + key + ": " + value;
+            // line = indenter(ATTRIBUTEINDENT) + key + ": " + value;
+            line = line + value;
           }
-          debug(line);
-          YAMLoutput = YAMLoutput + line + NL;
         }
+        debug(line);
+        YAMLoutput = YAMLoutput + line + NL;
       }
 
       return YAMLoutput;
