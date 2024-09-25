@@ -19,8 +19,9 @@ import java.io.FileNotFoundException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
-
+import java.util.Set;
 import java.util.Iterator;
 
 /**
@@ -125,7 +126,161 @@ class FLBConverter {
     CLASSIC, FLUENTD
   };
 
+  // ======== mapping configuration code
+
+  enum MappingType {
+    MAP, NOMAP, ALIAS
+  };
+
+  static class MappingElement {
+    MappingType mapping = null;
+    String comment = null;
+    String alias = null;
+
+    @Override
+    public String toString() {
+      String mappingElementStr = "Mapping=" + mapping + " -- ";
+      if (comment != null) {
+        mappingElementStr = mappingElementStr + " Comment=>" + comment + "<";
+      }
+      if (alias != null) {
+        mappingElementStr = mappingElementStr + " Comment=>" + alias + "<";
+      }
+      return mappingElementStr;
+    }
+
+    static String toStr(String[] array) {
+      String result = "";
+      if (array != null) {
+        result = "len=" + array.length + NL;
+        for (int idx = 0; idx < array.length; idx++) {
+          result = result + array[idx] + NL;
+        }
+      }
+      return result;
+    }
+
+    public MappingElement(String line) {
+      String[] elements = line.split("\\|");
+      debug("MappingElement line>" + line + "< elements>" + toStr(elements));
+      if (elements.length > 0) {
+        mapping = MappingType.valueOf(elements[0].trim());
+        if ((mapping == MappingType.ALIAS) && (elements.length > 1)) {
+          alias = elements[1].trim();
+        } else if ((mapping == MappingType.NOMAP) && (elements.length > 1)) {
+          comment = elements[1].trim();
+        }
+      }
+    }
+  }
+
+  /*
+   * This class definition gives as a key of the attribute name and an object to
+   * hold the related attribute values
+   */
+  public static class SinglePluginMapping extends HashMap<String, MappingElement> {
+    @Override
+    public String toString() {
+      String result = new String();
+      Set<String> keys = this.keySet();
+
+      Iterator iter = keys.iterator();
+      while (iter.hasNext()) {
+        String key = (String) iter.next();
+        MappingElement element = get(key);
+        result = result + key + " " + element.toString() + NL;
+      }
+      return result;
+    }
+
+    public SinglePluginMapping(BufferedReader file) {
+      try {
+        String line = null;
+        while ((line = file.readLine()) != null) {
+          int sepLocation = line.indexOf("|");
+          if (sepLocation > 0) {
+            String attributeName = line.substring(0, sepLocation);
+            attributeName = attributeName.trim();
+            MappingElement mappingElement = new MappingElement(line.substring(sepLocation + 1));
+            put(attributeName, mappingElement);
+          }
+        }
+      } catch (Exception err) {
+        err("SinglePluginMapping" + err.toString());
+      }
+    }
+  }
+
+  /*
+   * We need a set of mappings for each kind of plugin supported
+   */
+  static class AllPluginMappings extends HashMap<String, SinglePluginMapping> {
+
+    // @Override
+    // public String toString() {
+    // String result = new String();
+    // Set<String> keys = this.keySet();
+    // {
+    // Iterator iter = keys.iterator();
+    // while (iter.hasNext()) {
+    // String element = iter.next();
+    // result = iter.toString() + ":" + NL + element.toString() + NL;
+    // }
+    // }
+    // return result;
+    // }
+
+    public static AllPluginMappings factory() {
+      AllPluginMappings allPluginConfigs = new AllPluginMappings();
+      // XXXXXXXX
+      String line;
+      BufferedReader br = null;
+      FileReader fr = null;
+      String inFilename = "tail.mapping";
+      try {
+        File mappingFile = new File(inFilename);
+        if (!mappingFile.exists()) {
+          err("Cant locate input file:" + inFilename);
+          return allPluginConfigs;
+        }
+        fr = new FileReader(mappingFile);
+        br = new BufferedReader(fr);
+        String fn = mappingFile.getName();
+        int endOfName = fn.indexOf(".");
+        String pluginName = fn.substring(0, endOfName);
+        SinglePluginMapping mapping = new SinglePluginMapping(br);
+        allPluginConfigs.put(pluginName, mapping);
+
+        debug("Factory:" + pluginName + ":" + NL + mapping.toString() + NL);
+
+      } catch (Exception err) {
+        err("factory: " + err.toString());
+      } finally {
+        try {
+          if (br != null) {
+            br.close();
+          }
+          if (fr != null) {
+            fr.close();
+          }
+        } catch (Exception err) {
+          err("factory finally:" + err.toString());
+        }
+      }
+      return allPluginConfigs;
+    }
+
+  }
+
+  // ====== end of mapping construct
+
+  /*
+   * Defining this ArrayList as as a class in its own right makes casting and
+   * declarations simple.
+   * This structure holds a List (used to preserve order)
+   */
   static class PluginList extends ArrayList<Plugin> {
+
   }
 
   /**
@@ -135,9 +290,6 @@ class FLBConverter {
    */
   static class HashMapArray extends LinkedHashMap<String, ArrayList<String>> {
   }
-
-  // static class DirectivesMapArray extends LinkedListArray<Directive> {
-  // }
 
   static class Directive {
 
@@ -267,7 +419,7 @@ class FLBConverter {
      * occurrences of the same attribute)
      * 
      * @return the number of attributes held by this plugin. We only count one
-     *         unique occurence of an attribute
+     *         unique occurrence of an attribute
      */
     public int attributeCountByType() {
       return attributes.size();
@@ -506,16 +658,14 @@ class FLBConverter {
         ArrayList<String> multiValues = attributes.get(key);
         Iterator<String> valIter = multiValues.iterator();
         String value = null;
-        line = indenter(ATTRIBUTEINDENT) + key + ": ";
+        if (key.equals(COMMENT)) {
+          line = indenter(ATTRIBUTEINDENT) + key;
+        } else {
+          line = indenter(ATTRIBUTEINDENT) + key + ": ";
+        }
         while (valIter.hasNext()) {
           value = valIter.next();
-          if (key.equals(COMMENT)) {
-            // line = indenter(ATTRIBUTEINDENT) + key + value;
-            line = line + value;
-          } else {
-            // line = indenter(ATTRIBUTEINDENT) + key + ": " + value;
-            line = line + value;
-          }
+          line = line + value;
         }
         debug(line);
         YAMLoutput = YAMLoutput + line + NL;
@@ -698,6 +848,13 @@ class FLBConverter {
     }
   }
 
+  /*
+   * Loop through the list of plugins and and flatten each one in turn. New plugin
+   * definitions as a result of the
+   * process are incorporated into a separate list and merged at the end of the
+   * process. If the flattening was to have multiple
+   * nested levels then we can recurse
+   */
   static void flattenList(PluginList plugins) {
     PluginList flattenedPlugins = new PluginList();
     Iterator pluginIter = plugins.iterator();
@@ -709,6 +866,10 @@ class FLBConverter {
     plugins.addAll(flattenedPlugins);
   }
 
+  /*
+   * Go through each of the different types of plugins we may handle and ensure
+   * that we have flattened the structure
+   */
   static void flattenPluginLists() {
     debug("Flattening lists of plugins");
     flattenList(inputs);
@@ -1280,6 +1441,13 @@ class FLBConverter {
     info("Fluent Bit Converter starting ...");
     checkDebug();
     useIdiomatricForm();
+
+    debug("=====================================================================");
+
+    AllPluginMappings myMappings = AllPluginMappings.factory();
+    debug(myMappings.toString());
+    debug("=====================================================================");
+
     boolean isFluentd = isFluentdSource();
     try {
 
