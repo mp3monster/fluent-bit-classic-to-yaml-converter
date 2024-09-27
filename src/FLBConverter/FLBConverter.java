@@ -14,13 +14,17 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.io.FileNotFoundException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Set;
 import java.util.Iterator;
 
@@ -54,6 +58,15 @@ class FLBConverter {
 
   private static final String FLB_IDIOMATICFORM = "FLB_IDIOMATICFORM";
   private static final String FLB_IDIOMATICFORM_HELP = "When set the attribute names are converted to use the Kubernetes idiomatic format";
+
+  private static final String FLB_USECONFIGMAP = "FLB_USECONFIGMAP";
+  private static final String FLB_USECONFIGMAP_HELP = "When set the attribute names are converted to use the configuration map files to influence behavior";
+
+  private static final String FLB_ADDSRCLINENO = "FLB_ADDSRCLINENO";
+  private static final String FLB_ADDSRCLINENO_HELP = "When set the output includes a reference back to the source of large criminal activities";
+
+  private static final String FLB_DEBUG = "FLB_DEBUG";
+  private static final String FLB_DEBUG_HELP = "When set the output includes a reference back to the source of large criminal activities";
 
   private static final String COMMENT = "#";
 
@@ -110,10 +123,15 @@ class FLBConverter {
   /**
    * Define the debug flag globally - nothing is gained by passing it around
    */
-  private static boolean debug = false;
-  private static boolean useIdiomaticForm = false;
+  private static boolean debug = getConfig(FLB_DEBUG);
+  private static boolean useIdiomaticForm = getConfig(FLB_IDIOMATICFORM);
+  private static boolean useConfigMappings = getConfig(FLB_USECONFIGMAP);
+  private static boolean addSrcLineNo = getConfig(FLB_ADDSRCLINENO);
+
   private static boolean logToFile = false;
   private static FileWriter converterReport = null;
+
+  private static AllPluginMappings allPluginMappings = new AllPluginMappings();
 
   /**
    * Define the different plugin types.
@@ -167,6 +185,7 @@ class FLBConverter {
         mapping = MappingType.valueOf(elements[0].trim());
         if ((mapping == MappingType.ALIAS) && (elements.length > 1)) {
           alias = elements[1].trim();
+          alias = toIdiomaticForm(alias);
         } else if ((mapping == MappingType.NOMAP) && (elements.length > 1)) {
           comment = elements[1].trim();
         }
@@ -201,6 +220,7 @@ class FLBConverter {
           if (sepLocation > 0) {
             String attributeName = line.substring(0, sepLocation);
             attributeName = attributeName.trim();
+            attributeName = toIdiomaticForm(attributeName);
             MappingElement mappingElement = new MappingElement(line.substring(sepLocation + 1));
             put(attributeName, mappingElement);
           }
@@ -214,29 +234,17 @@ class FLBConverter {
   /*
    * We need a set of mappings for each kind of plugin supported
    */
-  static class AllPluginMappings extends HashMap<String, SinglePluginMapping> {
+  public static class AllPluginMappings extends HashMap<String, SinglePluginMapping> {
+    static AllPluginMappings allPluginConfigs = new AllPluginMappings();
 
-    // @Override
-    // public String toString() {
-    // String result = new String();
-    // Set<String> keys = this.keySet();
-    // {
-    // Iterator iter = keys.iterator();
-    // while (iter.hasNext()) {
-    // String element = iter.next();
-    // result = iter.toString() + ":" + NL + element.toString() + NL;
-    // }
-    // }
-    // return result;
-    // }
-
-    public static AllPluginMappings factory() {
-      AllPluginMappings allPluginConfigs = new AllPluginMappings();
-      // XXXXXXXX
+    /*
+     * Generates the plugin mapping data structure - adds the file identified
+     */
+    public static AllPluginMappings factory(String inFilename) {
       String line;
       BufferedReader br = null;
       FileReader fr = null;
-      String inFilename = "tail.mapping";
+      debug("AllPluginsMappings.factory for " + inFilename);
       try {
         File mappingFile = new File(inFilename);
         if (!mappingFile.exists()) {
@@ -270,8 +278,13 @@ class FLBConverter {
       return allPluginConfigs;
     }
 
+    /*
+     * 
+     */
+    public static SinglePluginMapping getPluginMapping(String pluginName) {
+      return allPluginConfigs.get(pluginName);
+    }
   }
-
   // ====== end of mapping construct
 
   /*
@@ -361,6 +374,42 @@ class FLBConverter {
         System.out.println("Unable to record ERROR to report file");
       }
     }
+  }
+
+  /**
+   * converts the attribute name to its idiomatc form if the option is enabled
+   * 
+   * @param attributeName name to convert
+   * @return returns the attribute key in a format dictated by the idiomatv
+   */
+  static String toIdiomaticForm(String attributeName) {
+
+    if (!useIdiomaticForm) {
+      return attributeName;
+    }
+    attributeName = attributeName.toLowerCase();
+    StringBuilder builder = new StringBuilder(attributeName);
+
+    // Traverse the string character by
+    // character and remove underscore
+    // and capitalize next letter
+    for (int i = 0; i < builder.length(); i++) {
+
+      // Check char is underscore
+      if (builder.charAt(i) == '_') {
+
+        builder.deleteCharAt(i);
+        builder.replace(
+            i, i + 1,
+            String.valueOf(
+                Character.toUpperCase(
+                    builder.charAt(i))));
+      }
+    }
+
+    // Return in String type
+    return builder.toString();
+
   }
 
   /**
@@ -459,42 +508,6 @@ class FLBConverter {
       return found;
     }
 
-    /**
-     * converts the attribute name to its idiomatc form if the option is enabled
-     * 
-     * @param attributeName name to convert
-     * @return returns the attribute key in a format dictated by the idiomatv
-     */
-    private String toIdiomaticForm(String attributeName) {
-
-      if (!useIdiomaticForm) {
-        return attributeName;
-      }
-      attributeName = attributeName.toLowerCase();
-      StringBuilder builder = new StringBuilder(attributeName);
-
-      // Traverse the string character by
-      // character and remove underscore
-      // and capitalize next letter
-      for (int i = 0; i < builder.length(); i++) {
-
-        // Check char is underscore
-        if (builder.charAt(i) == '_') {
-
-          builder.deleteCharAt(i);
-          builder.replace(
-              i, i + 1,
-              String.valueOf(
-                  Character.toUpperCase(
-                      builder.charAt(i))));
-        }
-      }
-
-      // Return in String type
-      return builder.toString();
-
-    }
-
     /*
      * If during the building of the object representation we have child objects
      * (e.g. store) then
@@ -519,7 +532,7 @@ class FLBConverter {
           debug("added nested plugin");
         }
 
-        // copy down only after sorting out the other chuildren OTHERWISE the other
+        // copy down only after sorting out the other children OTHERWISE the other
         // children will end up with
         // attributes from the 1st child
         attributes.putAll(firstChildPlugin.attributes);
@@ -589,18 +602,19 @@ class FLBConverter {
         }
       } else {
         if (attribute.toUpperCase().startsWith(OUTPUTFLUENTDSTART)) {
-          debug("NESTING FOUND [" + lineNo + "]");
           currentStoreInput = new Plugin(currentPlugin.pluginType);
         } else if (attribute.toUpperCase().startsWith(OUTPUTFLUENTDEND)) {
-          debug("NESTING end FOUND [" + lineNo + "]");
           storePlugins.add(currentStoreInput);
           currentStoreInput = null;
         } else {
-          info("Add cant process attribute:" + attribute);
+          info("Add - can't process attribute:" + attribute);
         }
       }
     }
 
+    /*
+     * 
+     */
     private static void addValues(String attribute, String attributeName, int sepPos, Plugin currentPlugin,
         int lineNo) {
       // determine whether there is a wildcard involved, correct the quotations
@@ -620,7 +634,11 @@ class FLBConverter {
         values = new ArrayList<String>();
       }
       values.add(attributeValue);
-      values.add(SEPARATOR + COMMENT + SEPARATOR + lineNo);
+      if (addSrcLineNo) {
+        values.add(SEPARATOR + COMMENT + SEPARATOR + "src ln " + lineNo);
+      } else {
+        values.add(SEPARATOR + COMMENT + SEPARATOR);
+      }
 
       if (attributeName.startsWith("@")) {
         // if we see the use of anything other than @INCLUDE then comment it out
@@ -648,25 +666,62 @@ class FLBConverter {
      * @return string containing the plugin in YAML format
      */
     public String write() {
+      SinglePluginMapping mapping = AllPluginMappings.getPluginMapping(name);
       String YAMLoutput = writePrefix();
       Iterator<String> attributeIter = attributes.keySet().iterator();
-      String key = null;
-      String line = null;
+
+      debug("---Starting Write for " + name);
 
       while (attributeIter.hasNext()) {
-        key = attributeIter.next();
+        String key = attributeIter.next();
+        String prefix = "";
+        String postfix = "";
+        String displayKey = key;
+        String line = null;
+
+        // Apply the output config
+        debug("+++++++++++++++ check mapping for " + key);
+
+        // XXXXXXX
+        if (mapping != null) {
+          if (mapping.containsKey(key)) {
+            switch (mapping.get(key).mapping) {
+              case NOMAP:
+                debug("Mapping for " + key + " not defined");
+                prefix = COMMENT;
+                String commentMsg = mapping.get(key).comment;
+                if ((commentMsg != null) && (commentMsg.length() > 0)) {
+                  postfix = NL + indenter(ATTRIBUTEINDENT) + COMMENT + commentMsg;
+                }
+                break;
+              case ALIAS:
+                displayKey = mapping.get(key).alias;
+                debug("Mapping for " + key + " has an alias of " + displayKey);
+                break;
+              case MAP:
+                debug("Mapping for " + key + " is no change");
+                break;
+              default:
+            }
+          }
+        }
+
         ArrayList<String> multiValues = attributes.get(key);
         Iterator<String> valIter = multiValues.iterator();
         String value = null;
         if (key.equals(COMMENT)) {
-          line = indenter(ATTRIBUTEINDENT) + key;
+          line = indenter(ATTRIBUTEINDENT) + prefix + displayKey;
         } else {
-          line = indenter(ATTRIBUTEINDENT) + key + ": ";
+
+          line = indenter(ATTRIBUTEINDENT) + prefix + displayKey + ": ";
         }
         while (valIter.hasNext()) {
           value = valIter.next();
           line = line + value;
         }
+
+        line = line + postfix;
+
         debug(line);
         YAMLoutput = YAMLoutput + line + NL;
       }
@@ -1018,7 +1073,7 @@ class FLBConverter {
 
   /**
    * Takes the list odf plugins, and writes the correct prefix label before
-   * iterrating through the plugins adding them in the correct YAML format
+   * iterating through the plugins adding them in the correct YAML format
    * 
    * @param plugins the list of plugin objects of a particular type
    * @param outFile the output file buffer
@@ -1231,23 +1286,6 @@ class FLBConverter {
   }
 
   /**
-   * Checks for the environment variable that control whether we log to debug
-   * level. We've not adopted a logging framework so that we can keep the code as
-   * a single class. This means we can run without needing to have a Mave or
-   * Gradle
-   * 
-   * @return returns the boolean indicating if debug is enabled
-   */
-  private static boolean checkDebug() {
-    String debugFlagStr = System.getenv(FLB_CONVERT_DEBUG);
-    if ((debugFlagStr != null) && (debugFlagStr.trim().equalsIgnoreCase(TRUE))) {
-      debug = true;
-      System.out.println("Env flag for debug set to " + debugFlagStr);
-    }
-    return debug;
-  }
-
-  /**
    * If the environment variable is set then any info logs are also written to a
    * file that is the same as the output with the filename extended with .report
    * Useful if we're using a conversion.list
@@ -1295,16 +1333,15 @@ class FLBConverter {
    * 
    * @return flag indicating whether to use idiomatic form
    */
-  private static boolean useIdiomatricForm() {
+  private static boolean getConfig(String configName) {
     boolean flag = false;
-    String idiomaticFlagStr = System.getenv(FLB_IDIOMATICFORM);
+    String configStr = System.getenv(configName);
     logToFile = false;
-    if ((idiomaticFlagStr != null) && (idiomaticFlagStr.trim().equalsIgnoreCase(TRUE))) {
+    if ((configStr != null) && (configStr.trim().equalsIgnoreCase(TRUE))) {
       flag = true;
     }
-    debug("Env flag for using idomatic form to file set to " + idiomaticFlagStr);
+    debug("Env flag for using " + configName + " set to " + configStr);
 
-    useIdiomaticForm = flag;
     return flag;
   }
 
@@ -1420,6 +1457,25 @@ class FLBConverter {
     return cliFiles;
   }
 
+  static ArrayList<String> getConfigFiles(String path) {
+    String dirPath = "./";
+    if ((path != null) && (path.length() > 0)) {
+      dirPath = path;
+    }
+
+    ArrayList<String> files = new ArrayList<String>();
+    File dir = new File(dirPath);
+    List<File> list = Arrays.asList(dir.listFiles(new FilenameFilter() {
+      @Override
+      public boolean accept(File dir, String name) {
+        return name.endsWith(".mapping"); // or something else
+      }
+    }));
+    list.forEach((fl) -> files.add(fl.getAbsolutePath()));
+
+    return files;
+  }
+
   /**
    * 
    * The app's name drives the execution of processing one or more classic format
@@ -1439,13 +1495,14 @@ class FLBConverter {
     ArrayList<String> filesList = null;
 
     info("Fluent Bit Converter starting ...");
-    checkDebug();
-    useIdiomatricForm();
 
-    debug("=====================================================================");
+    ArrayList<String> configFiles = getConfigFiles(null);
 
-    AllPluginMappings myMappings = AllPluginMappings.factory();
-    debug(myMappings.toString());
+    Iterator configIter = configFiles.iterator();
+    while (configIter.hasNext()) {
+      AllPluginMappings myMappings = AllPluginMappings.factory((String) configIter.next());
+      debug(myMappings.toString());
+    }
     debug("=====================================================================");
 
     boolean isFluentd = isFluentdSource();
@@ -1511,9 +1568,10 @@ class FLBConverter {
     System.out.println("<filename>" + pt + "Process the file identified by <filename>");
     System.out.println(FLB_CONVERT_DEBUG + pt + FLB_CONVERT_DEBUG_HELP);
     System.out.println(FLB_REPORT_FILE + pt + FLB_REPORT_FILE_HELP);
+    System.out.println(FLB_ADDSRCLINENO + pt + FLB_ADDSRCLINENO_HELP);
     System.out.println(FLB_PATH_PREFIX + pt + FLB_PATH_PREFIX_HELP);
     System.out.println(FLB_IDIOMATICFORM + pt + FLB_IDIOMATICFORM_HELP);
-    System.out.println(FLB_CLASSIC_FN + pt + FLB_CLASSIC_FN_HELP);
+    // System.out.println(FLB_CLASSIC_FN + pt + FLB_CLASSIC_FN_HELP);
     System.out.println(NL);
     System.out.println(CONVERSION_LIST + pt + CONVERSION_LIST_HELP);
     System.out.println(NL);
