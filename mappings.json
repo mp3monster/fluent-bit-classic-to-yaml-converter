@@ -1,0 +1,1101 @@
+{
+  "mappings": {
+    "service": {
+      "key_mappings": {
+        "flush": "flush_interval",
+        "grace": "graceful_shutdown_timeout",
+        "daemon": "daemon_mode",
+        "dns.mode": "dns_mode",
+        "log_file": "log_file",
+        "log_level": "log_level",
+        "parsers_file": "parsers_file",
+        "plugins_file": "plugins_file",
+        "streams_file": "streams_file",
+        "http_server": "http_server",
+        "http_listen": "http_listen",
+        "http_port": "http_port",
+        "coro_stack_size": "coro_stack_size",
+        "scheduler.cap": "scheduler_cap",
+        "scheduler.base": "scheduler_base",
+        "json.convert_nan_to_null": "json.convert_nan_to_null",
+        "json.escape_unicode": "json.escape_unicode",
+        "sp.convert_from_str_to_num": "sp.convert_from_str_to_num",
+        "windows.maxstdio": "windows.maxstdio",
+        "health_check": "health_check",
+        "hc_errors_count": "hc_errors_count",
+        "hc_retry_failure_count": "hc_retry_failure_count",
+        "storage.path": "storage.path",
+        "storage.sync": "storage.sync",
+        "storage.checksum": "storage.checksum",
+        "storage.backlog.mem_limit": "storage.backlog.mem_limit",
+        "storage.metrics": "storage.metrics",
+        "storage.max_chunks_up": "storage.max_chunks_up",
+        "storage.input_pause_on_chunks_overlimit": "storage.input_pause_on_chunks_overlimit"
+      },
+      "value_transformations": {
+        "daemon_mode": [
+          { "type": "bool_map", "true": "true", "false": "false" }
+        ],
+        "http_server": [
+          { "type": "bool_map", "true": "true", "false": "false" }
+        ],
+        "json.convert_nan_to_null": [
+          { "type": "bool_map", "true": "true", "false": "false" }
+        ],
+        "json.escape_unicode": [
+          { "type": "bool_map", "true": "true", "false": "false" }
+        ],
+        "sp.convert_from_str_to_num": [
+          { "type": "bool_map", "true": "true", "false": "false" }
+        ],
+        "health_check": [
+          { "type": "bool_map", "true": "true", "false": "false" }
+        ],
+        "storage.checksum": [
+          { "type": "bool_map", "true": "true", "false": "false" }
+        ],
+        "storage.metrics": [
+          { "type": "bool_map", "true": "true", "false": "false" }
+        ],
+        "storage.input_pause_on_chunks_overlimit": [
+          { "type": "bool_map", "true": "true", "false": "false" }
+        ],
+        "storage.backlog.mem_limit": [
+          { "type": "convert_size" }
+        ]
+      }
+    },
+    "inputs": {
+      "tail": {
+        "key_mappings": {
+          "buffer_chunk_size": "buffer_chunk_size",
+          "buffer_max_size": "buffer_max_size",
+          "path": "path",
+          "path_key": "path_key",
+          "exclude_path": "exclude_path",
+          "offset_key": "offset_key",
+          "read_from_head": "read_from_head",
+          "refresh_interval": "refresh_interval",
+          "rotate_wait": "rotate_wait",
+          "ignore_older": "ignore_older",
+          "ignore_active_older_files": "ignore_active_older_files",
+          "skip_long_lines": "skip_long_lines",
+          "skip_empty_lines": "skip_empty_lines",
+          "db": "db",
+          "db.sync": "db.sync",
+          "db.locking": "db.locking",
+          "db.journal_mode": "db.journal_mode",
+          "db.compare_filename": "db.compare_filename",
+          "mem_buf_limit": "buffer_max_size",
+          "exit_on_eof": "exit_on_eof",
+          "parser": "parser",
+          "key": "key",
+          "inotify_watcher": "inotify_watcher",
+          "tag": "tag",
+          "tag_regex": "tag_regex",
+          "static_batch_size": "static_batch_size",
+          "file_cache_advise": "file_cache_advise",
+          "threaded": "threaded",
+          "unicode.encoding": "unicode.encoding",
+          "generic.encoding": "generic.encoding",
+          "docker_mode": "docker_mode",
+          "docker_mode_flush": "docker_mode_flush",
+          "docker_mode_parser": "docker_mode_parser",
+          "multiline": "multiline",
+          "multiline_flush": "multiline_flush",
+          "parser_firstline": "parser_firstline"
+        },
+        "value_transformations": {
+          "buffer_chunk_size": [
+            { "type": "convert_size" }
+          ],
+          "buffer_max_size": [
+            { "type": "convert_size" }
+          ],
+          "mem_buf_limit": [
+            { "type": "convert_size" }
+          ],
+          "static_batch_size": [
+            { "type": "convert_size" }
+          ],
+          "read_from_head": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "ignore_active_older_files": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "skip_long_lines": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "skip_empty_lines": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "db.locking": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "db.compare_filename": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "exit_on_eof": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "inotify_watcher": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "file_cache_advise": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "threaded": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "docker_mode": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "multiline": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "systemd": {
+        "key_mappings": {
+          "path": "path",
+          "max_fields": "max_fields",
+          "max_entries": "max_entries",
+          "systemd_filter": "systemd_filter",
+          "systemd_filter_type": "systemd_filter_type",
+          "tag": "tag",
+          "db": "db",
+          "db.sync": "db.sync",
+          "read_from_tail": "read_from_tail",
+          "lowercase": "lowercase",
+          "strip_underscores": "strip_underscores",
+          "threaded": "threaded"
+        },
+        "value_transformations": {
+          "read_from_tail": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "lowercase": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "strip_underscores": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "threaded": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "dummy": {
+        "key_mappings": {
+          "dummy": "dummy",
+          "metadata": "metadata",
+          "start_time_sec": "start_time_sec",
+          "start_time_nsec": "start_time_nsec",
+          "rate": "rate",
+          "interval_sec": "interval_sec",
+          "interval_nsec": "interval_nsec",
+          "samples": "samples",
+          "copies": "copies",
+          "flush_on_startup": "flush_on_startup",
+          "threaded": "threaded"
+        },
+        "value_transformations": {
+          "flush_on_startup": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "threaded": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "forward": {
+        "key_mappings": {
+          "listen": "listen",
+          "port": "port",
+          "unix_path": "unix_path",
+          "unix_perm": "unix_perm",
+          "buffer_max_size": "buffer_max_size",
+          "buffer_chunk_size": "buffer_chunk_size",
+          "tag_prefix": "tag_prefix",
+          "tag": "tag",
+          "shared_key": "shared_key",
+          "empty_shared_key": "empty_shared_key",
+          "self_hostname": "self_hostname",
+          "security.users": "security.users",
+          "threaded": "threaded"
+        },
+        "value_transformations": {
+          "buffer_max_size": [
+            { "type": "convert_size" }
+          ],
+          "buffer_chunk_size": [
+            { "type": "convert_size" }
+          ],
+          "empty_shared_key": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "threaded": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "http": {
+        "key_mappings": {
+          "listen": "listen",
+          "port": "port",
+          "tag_key": "tag_key",
+          "buffer_max_size": "buffer_max_size",
+          "buffer_chunk_size": "buffer_chunk_size",
+          "successful_response_code": "successful_response_code",
+          "success_header": "success_header",
+          "threaded": "threaded"
+        },
+        "value_transformations": {
+          "buffer_max_size": [
+            { "type": "convert_size" }
+          ],
+          "buffer_chunk_size": [
+            { "type": "convert_size" }
+          ],
+          "threaded": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "opentelemetry": {
+        "key_mappings": {
+          "alias": "alias",
+          "buffer_max_size": "buffer_max_size",
+          "buffer_chunk_size": "buffer_chunk_size",
+          "encode_profiles_as_log": "encode_profiles_as_log",
+          "host": "host",
+          "http2": "http2",
+          "listen": "listen",
+          "log_level": "log_level",
+          "log_supress_interval": "log_supress_interval",
+          "logs_body_key": "logs_body_key",
+          "logs_metadata_key": "logs_metadata_key",
+          "mem_buf_limit": "mem_buf_limit",
+          "net.accept_timeout": "net.accept_timeout",
+          "net.accept_timeout_log_error": "net.accept_timeout_log_error",
+          "net.backlog": "net.backlog",
+          "net.io_timeout": "net.io_timeout",
+          "net.keepalive": "net.keepalive",
+          "net.share_port": "net.share_port",
+          "port": "port",
+          "profiles_support": "profiles_support",
+          "raw_traces": "raw_traces",
+          "routable": "routable",
+          "storage.pause_on_chunks_overlimit": "storage.pause_on_chunks_overlimit",
+          "storage.type": "storage.type",
+          "successful_response_code": "successful_response_code",
+          "tag": "tag",
+          "tag_from_uri": "tag_from_uri",
+          "tag_key": "tag_key",
+          "threaded": "threaded",
+          "thread.ring_buffer.capacity": "thread.ring_buffer.capacity",
+          "thread.ring_buffer.window": "thread.ring_buffer.window",
+          "tls": "tls",
+          "tls.ca_file": "tls.ca_file",
+          "tls.ca_path": "tls.ca_path",
+          "tls.crt_file": "tls.crt_file",
+          "tls.ciphers": "tls.ciphers",
+          "tls.debug": "tls.debug",
+          "tls.key_file": "tls.key_file",
+          "tls.key_passwd": "tls.key_passwd",
+          "tls.max_version": "tls.max_version",
+          "tls.min_version": "tls.min_version",
+          "tls.verify": "tls.verify",
+          "tls.verify_hostname": "tls.verify_hostname",
+          "tls.vhost": "tls.vhost"
+        },
+        "value_transformations": {
+          "encode_profiles_as_log": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "http2": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "net.accept_timeout_log_error": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "net.keepalive": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "net.share_port": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "profiles_support": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "raw_traces": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "routable": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "storage.pause_on_chunks_overlimit": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "tag_from_uri": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "threaded": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "tls": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "tls.verify": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "tls.verify_hostname": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "buffer_max_size": [
+            { "type": "convert_size" }
+          ],
+          "buffer_chunk_size": [
+            { "type": "convert_size" }
+          ],
+          "mem_buf_limit": [
+            { "type": "convert_size" }
+          ]
+        }
+      },
+      "stdin": {
+        "key_mappings": {
+          "buffer_size": "buffer_size",
+          "parser": "parser",
+          "threaded": "threaded"
+        },
+        "value_transformations": {
+          "buffer_size": [
+            { "type": "convert_size" }
+          ],
+          "threaded": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "syslog": {
+        "key_mappings": {
+          "mode": "mode",
+          "listen": "listen",
+          "port": "port",
+          "path": "path",
+          "unix_perm": "unix_perm",
+          "parser": "parser",
+          "buffer_chunk_size": "buffer_chunk_size",
+          "buffer_max_size": "buffer_max_size",
+          "receive_buffer_size": "receive_buffer_size",
+          "source_address_key": "source_address_key",
+          "threaded": "threaded"
+        },
+        "value_transformations": {
+          "buffer_chunk_size": [
+            { "type": "convert_size" }
+          ],
+          "buffer_max_size": [
+            { "type": "convert_size" }
+          ],
+          "receive_buffer_size": [
+            { "type": "convert_size" }
+          ],
+          "threaded": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "tcp": {
+        "key_mappings": {
+          "listen": "listen",
+          "port": "port",
+          "buffer_size": "buffer_size",
+          "chunk_size": "chunk_size",
+          "format": "format",
+          "separator": "separator",
+          "source_address_key": "source_address_key",
+          "threaded": "threaded"
+        },
+        "value_transformations": {
+          "buffer_size": [
+            { "type": "convert_size" }
+          ],
+          "chunk_size": [
+            { "type": "convert_size" }
+          ],
+          "threaded": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "udp": {
+        "key_mappings": {
+          "listen": "listen",
+          "port": "port",
+          "buffer_size": "buffer_size",
+          "chunk_size": "chunk_size",
+          "format": "format",
+          "separator": "separator",
+          "source_address_key": "source_address_key",
+          "threaded": "threaded"
+        },
+        "value_transformations": {
+          "buffer_size": [
+            { "type": "convert_size" }
+          ],
+          "chunk_size": [
+            { "type": "convert_size" }
+          ],
+          "threaded": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "cpu": {
+        "key_mappings": {
+          "tag": "tag",
+          "interval_sec": "interval_seconds"
+        },
+        "value_transformations": {}
+      },
+      "disk": {
+        "key_mappings": {
+          "tag": "tag",
+          "interval_sec": "interval_seconds"
+        },
+        "value_transformations": {}
+      },
+      "exec": {
+        "key_mappings": {
+          "tag": "tag",
+          "command": "command",
+          "interval_sec": "interval_seconds",
+          "interval_nsec": "interval_nanoseconds"
+        },
+        "value_transformations": {}
+      },
+      "head": {
+        "key_mappings": {
+          "tag": "tag",
+          "file": "file",
+          "read_bytes": "read_bytes",
+          "buf_size": "buf_size",
+          "interval_sec": "interval_seconds"
+        },
+        "value_transformations": {
+          "buf_size": [
+            { "type": "convert_size" }
+          ]
+        }
+      },
+      "health": {
+        "key_mappings": {
+          "tag": "tag",
+          "host": "host",
+          "port": "port",
+          "interval_sec": "interval_seconds",
+          "alert": "alert"
+        },
+        "value_transformations": {
+          "alert": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "kmsg": {
+        "key_mappings": {
+          "tag": "tag"
+        },
+        "value_transformations": {}
+      },
+      "mqtt": {
+        "key_mappings": {
+          "tag": "tag",
+          "listen": "listen",
+          "port": "port"
+        },
+        "value_transformations": {}
+      },
+      "prometheus_scrape": {
+        "key_mappings": {
+          "tag": "tag",
+          "scrape_interval": "scrape_interval",
+          "host": "host",
+          "port": "port",
+          "metrics": "metrics",
+          "tls": "tls",
+          "tls.ca": "tls.ca",
+          "tls.crt": "tls.crt",
+          "tls.key": "tls.key"
+        },
+        "value_transformations": {
+          "tls": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "random": {
+        "key_mappings": {
+          "tag": "tag",
+          "samples": "samples"
+        },
+        "value_transformations": {}
+      },
+      "serial": {
+        "key_mappings": {
+          "tag": "tag",
+          "file": "file",
+          "bitrate": "bitrate",
+          "min_bytes": "min_bytes",
+          "separator": "separator"
+        },
+        "value_transformations": {}
+      },
+      "collectd": {
+        "key_mappings": {
+          "tag": "tag",
+          "listen": "listen",
+          "port": "port",
+          "typesdb": "typesdb",
+          "buffer_size": "buffer_size"
+        },
+        "value_transformations": {
+          "buffer_size": [
+            { "type": "convert_size" }
+          ]
+        }
+      },
+      "statsd": {
+        "key_mappings": {
+          "tag": "tag",
+          "listen": "listen",
+          "port": "port"
+        },
+        "value_transformations": {}
+      },
+      "fluentbit_metrics": {
+        "key_mappings": {
+          "tag": "tag",
+          "scrape_interval": "scrape_interval",
+          "scrape_on_start": "scrape_on_start"
+        },
+        "value_transformations": {
+          "scrape_on_start": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "node_exporter_metrics": {
+        "key_mappings": {
+          "tag": "tag",
+          "scrape_interval": "scrape_interval",
+          "path.procfs": "path.procfs",
+          "path.sysfs": "path.sysfs"
+        },
+        "value_transformations": {}
+      }
+    },
+    "filters": {
+      "kubernetes": {
+        "key_mappings": {
+          "kube_url": "kubernetes_url",
+          "kube_ca_path": "kubernetes_ca_file",
+          "kube_token_file": "kubernetes_token_file",
+          "merge_log": "merge_log",
+          "merge_log_key": "merge_log_key",
+          "k8s_logging.parser": "kubernetes_parser",
+          "k8s_logging.exclude": "kubernetes_exclude",
+          "labels": "labels",
+          "annotations": "annotations",
+          "kubelet_host": "kubelet_host",
+          "kubelet_port": "kubelet_port",
+          "dns_wait_time": "dns_wait_time",
+          "use_kubelet": "use_kubelet",
+          "cache_use_docker_json": "cache_use_docker_json",
+          "use_journal": "use_journal",
+          "regex_parser": "regex_parser",
+          "buffer_size": "buffer_size",
+          "dummy_meta": "dummy_meta",
+          "kube_tag_prefix": "kube_tag_prefix",
+          "merge_log_trim": "merge_log_trim",
+          "keep_log": "keep_log",
+          "merge_parser": "merge_parser"
+        },
+        "value_transformations": {
+          "merge_log": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "kubernetes_parser": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "kubernetes_exclude": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "labels": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "annotations": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "use_kubelet": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "cache_use_docker_json": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "use_journal": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "dummy_meta": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "merge_log_trim": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "keep_log": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "buffer_size": [
+            { "type": "convert_size" }
+          ]
+        }
+      },
+      "parser": {
+        "key_mappings": {
+          "key_name": "key",
+          "parser": "parser_name",
+          "preserve_key": "preserve_key",
+          "reserve_data": "reserve_data"
+        },
+        "value_transformations": {
+          "preserve_key": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "reserve_data": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "lua": {
+        "key_mappings": {
+          "script": "script",
+          "call": "function",
+          "time_as_table": "time_as_table",
+          "protected_mode": "protected_mode"
+        },
+        "value_transformations": {
+          "time_as_table": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "protected_mode": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "grep": {
+        "key_mappings": {
+          "regex": "regex",
+          "exclude": "exclude"
+        },
+        "value_transformations": {}
+      },
+      "modify": {
+        "key_mappings": {
+          "condition": "condition",
+          "set": "set",
+          "add": "add",
+          "remove": "remove",
+          "remove_wildcard": "remove_wildcard",
+          "rename": "rename",
+          "copy": "copy"
+        },
+        "value_transformations": {}
+      },
+      "nest": {
+        "key_mappings": {
+          "operation": "operation",
+          "wildcard": "wildcard",
+          "nest_under": "nest_under",
+          "nested_type": "nested_type",
+          "add_prefix": "add_prefix",
+          "remove_prefix": "remove_prefix"
+        },
+        "value_transformations": {}
+      },
+      "rewrite_tag": {
+        "key_mappings": {
+          "rule": "rule",
+          "emitter_name": "emitter_name",
+          "emitter_mem_buf_limit": "emitter_mem_buf_limit"
+        },
+        "value_transformations": {
+          "emitter_mem_buf_limit": [
+            { "type": "convert_size" }
+          ]
+        }
+      },
+      "throttle": {
+        "key_mappings": {
+          "rate": "rate",
+          "window": "window",
+          "interval": "interval",
+          "print_status": "print_status",
+          "slide_window": "slide_window",
+          "key": "key"
+        },
+        "value_transformations": {
+          "print_status": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "slide_window": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "multiline": {
+        "key_mappings": {
+          "key_content": "key_content",
+          "parser": "parser"
+        },
+        "value_transformations": {}
+      }
+    },
+    "outputs": {
+      "stdout": {
+        "key_mappings": {
+          "format": "format",
+          "json_pretty": "format_json_pretty"
+        },
+        "value_transformations": {
+          "format_json_pretty": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "elasticsearch": {
+        "key_mappings": {
+          "host": "host",
+          "port": "port",
+          "index": "index",
+          "type": "type_name",
+          "http_user": "username",
+          "http_passwd": "password",
+          "suppress_type_name": "suppress_type_name",
+          "logstash_format": "logstash_format",
+          "logstash_prefix": "logstash_prefix",
+          "logstash_dateformat": "logstash_date_format",
+          "time_key": "time_key",
+          "include_tag_key": "include_tag_key",
+          "tag_key": "tag_key",
+          "generate_id": "generate_id",
+          "id_key": "id_key",
+          "write_operation": "write_operation",
+          "replace_dots": "replace_dots",
+          "trace_output": "trace_output",
+          "trace_error": "trace_error",
+          "current_time_index": "current_time_index",
+          "logstash_prefix_key": "logstash_prefix_key",
+          "buffer_size": "buffer_size",
+          "pipeline": "pipeline",
+          "aws_auth": "aws_auth",
+          "aws_region": "aws_region",
+          "aws_sts_endpoint": "aws_sts_endpoint",
+          "aws_role_arn": "aws_role_arn",
+          "aws_external_id": "aws_external_id",
+          "aws_service_name": "aws_service_name",
+          "aws_profile": "aws_profile",
+          "cloud_id": "cloud_id",
+          "cloud_auth": "cloud_auth",
+          "path": "path",
+          "compress": "compress"
+        },
+        "value_transformations": {
+          "suppress_type_name": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "logstash_format": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "include_tag_key": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "generate_id": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "replace_dots": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "trace_output": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "trace_error": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "current_time_index": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "aws_auth": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "buffer_size": [
+            { "type": "convert_size" }
+          ]
+        }
+      },
+      "http": {
+        "key_mappings": {
+          "host": "host",
+          "port": "port",
+          "uri": "uri",
+          "format": "format",
+          "json_date_key": "json_date_key",
+          "json_date_format": "json_date_format",
+          "header": "header",
+          "header_tag_field": "header_tag_field",
+          "http_user": "http_user",
+          "http_passwd": "http_passwd",
+          "allow_duplicated_headers": "allow_duplicated_headers",
+          "log_response_payload": "log_response_payload",
+          "tls": "tls",
+          "tls.verify": "tls.verify",
+          "tls.ca": "tls.ca",
+          "tls.crt": "tls.crt",
+          "tls.key": "tls.key",
+          "tls.vhost": "tls.vhost"
+        },
+        "value_transformations": {
+          "allow_duplicated_headers": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "log_response_payload": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "tls": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "tls.verify": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "prometheus_exporter": {
+        "key_mappings": {
+          "host": "host",
+          "port": "port",
+          "add_labels": "add_labels"
+        },
+        "value_transformations": {}
+      },
+      "loki": {
+        "key_mappings": {
+          "host": "host",
+          "port": "port",
+          "labels": "labels",
+          "label_keys": "label_keys",
+          "line_format": "line_format",
+          "remove_keys": "remove_keys",
+          "drop_single_key": "drop_single_key",
+          "auto_kubernetes_labels": "auto_kubernetes_labels",
+          "http_user": "http_user",
+          "http_passwd": "http_passwd",
+          "tenant_id_key": "tenant_id_key",
+          "tenant_id": "tenant_id"
+        },
+        "value_transformations": {
+          "drop_single_key": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "auto_kubernetes_labels": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "file": {
+        "key_mappings": {
+          "path": "path",
+          "format": "format",
+          "file_tag_key": "file_tag_key"
+        },
+        "value_transformations": {}
+      },
+      "null": {
+        "key_mappings": {},
+        "value_transformations": {}
+      },
+      "stackdriver": {
+        "key_mappings": {
+          "google_service_credentials": "google_service_credentials",
+          "resource": "resource",
+          "severity_key": "severity_key",
+          "autoformat_stackdriver_trace": "autoformat_stackdriver_trace",
+          "log_name_key": "log_name_key"
+        },
+        "value_transformations": {
+          "autoformat_stackdriver_trace": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "s3": {
+        "key_mappings": {
+          "bucket": "bucket",
+          "region": "region",
+          "json_date_key": "json_date_key",
+          "json_date_format": "json_date_format",
+          "total_file_size": "total_file_size",
+          "upload_chunk_size": "upload_chunk_size",
+          "upload_timeout": "upload_timeout",
+          "store_dir": "store_dir",
+          "store_dir_limit_size": "store_dir_limit_size",
+          "s3_key_format": "s3_key_format",
+          "s3_key_format_tag_delimiters": "s3_key_format_tag_delimiters",
+          "static_file_path": "static_file_path",
+          "use_put_object": "use_put_object",
+          "role_arn": "role_arn",
+          "canned_acl": "canned_acl",
+          "compression": "compression",
+          "content_encoding": "content_encoding",
+          "endpoint": "endpoint",
+          "sts_endpoint": "sts_endpoint",
+          "preserve_data_ordering": "preserve_data_ordering",
+          "log_s3_key": "log_s3_key"
+        },
+        "value_transformations": {
+          "total_file_size": [
+            { "type": "convert_size" }
+          ],
+          "upload_chunk_size": [
+            { "type": "convert_size" }
+          ],
+          "store_dir_limit_size": [
+            { "type": "convert_size" }
+          ],
+          "static_file_path": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "use_put_object": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ],
+          "preserve_data_ordering": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      }
+    },
+    "parsers": {
+      "json": {
+        "key_mappings": {
+          "time_key": "timestamp_key",
+          "time_format": "timestamp_format",
+          "time_keep": "time_keep"
+        },
+        "value_transformations": {
+          "time_keep": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "docker": {
+        "key_mappings": {
+          "time_key": "timestamp_key",
+          "time_format": "timestamp_format",
+          "time_keep": "time_keep"
+        },
+        "value_transformations": {
+          "time_keep": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "regex": {
+        "key_mappings": {
+          "regex": "regex",
+          "time_key": "time_key",
+          "time_format": "time_format",
+          "time_offset": "time_offset",
+          "time_keep": "time_keep",
+          "types": "types"
+        },
+        "value_transformations": {
+          "time_keep": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "ltsv": {
+        "key_mappings": {
+          "time_key": "time_key",
+          "time_format": "time_format",
+          "types": "types",
+          "time_keep": "time_keep"
+        },
+        "value_transformations": {
+          "time_keep": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      },
+      "logfmt": {
+        "key_mappings": {
+          "time_key": "time_key",
+          "time_format": "time_format",
+          "types": "types",
+          "time_keep": "time_keep"
+        },
+        "value_transformations": {
+          "time_keep": [
+            { "type": "bool_map", "true": "true", "false": "false" }
+          ]
+        }
+      }
+    },
+    "multiline_parsers": {
+      "go": {
+        "key_mappings": {
+          "multiline": "rules"
+        },
+        "value_transformations": {}
+      },
+      "java": {
+        "key_mappings": {
+          "multiline": "rules"
+        },
+        "value_transformations": {}
+      },
+      "python": {
+        "key_mappings": {
+          "multiline": "rules"
+        },
+        "value_transformations": {}
+      },
+      "docker": {
+        "key_mappings": {
+          "multiline": "rules"
+        },
+        "value_transformations": {}
+      },
+      "cri": {
+        "key_mappings": {
+          "multiline": "rules"
+        },
+        "value_transformations": {}
+      },
+      "fluentbit": {
+        "key_mappings": {
+          "multiline": "rules"
+        },
+        "value_transformations": {}
+      },
+      "multiline_grok": {
+        "key_mappings": {
+          "grok": "grok",
+          "firstline": "firstline"
+        },
+        "value_transformations": {}
+      }
+    }
+  }
+}
