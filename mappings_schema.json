@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "mappings": {
+      "type": "object",
+      "properties": {
+        "service": {
+          "type": "object",
+          "properties": {
+            "key_mappings": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            },
+            "value_transformations": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": { "$ref": "#/definitions/transform" }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "inputs": { "$ref": "#/definitions/pluginSection" },
+        "filters": { "$ref": "#/definitions/pluginSection" },
+        "outputs": { "$ref": "#/definitions/pluginSection" },
+        "parsers": { "$ref": "#/definitions/pluginSection" },
+        "multiline_parsers": { "$ref": "#/definitions/pluginSection" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["mappings"],
+  "additionalProperties": false,
+  "definitions": {
+    "pluginSection": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "key_mappings": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          },
+          "value_transformations": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/transform" }
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "transform": {
+      "type": "object",
+      "oneOf": [
+        {
+          "properties": {
+            "type": { "const": "replace" },
+            "from": { "type": "string" },
+            "to": { "type": "string" }
+          },
+          "required": ["type", "from", "to"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "regex_replace" },
+            "pattern": { "type": "string" },
+            "replace": { "type": "string" }
+          },
+          "required": ["type", "pattern", "replace"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "convert_size" }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "bool_map" },
+            "true": { "type": "string" },
+            "false": { "type": "string" }
+          },
+          "required": ["type", "true", "false"],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}
