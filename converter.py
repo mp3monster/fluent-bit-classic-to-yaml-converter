@@ -342,6 +342,9 @@ def apply_mappings_and_transformations(
         key_map = service_mappings.get('key_mappings', {})
 
         for old_key in list(service_item):
+            if (old_key is None):
+                logger.debug ("Found None key")
+            logger.debug (f"Evaluating {old_key}")
             if old_key in key_map and old_key != '_comment':
                 new_key = key_map[old_key]
                 service_item[new_key] = service_item.pop(old_key)
@@ -409,11 +412,13 @@ def build_yaml_structure(config_data: Dict[str, Any], logger: logging.Logger):
                         else:
                             item_map[key] = value
                     if '_comment' in item:
+                        logger.info (f"Skipping comment {item}")
                         comment_token = CommentToken(f"# {item['_comment']}\n", CommentMark(0))
-                        if item_index == 0:
-                            sequence.yaml_set_start_comment(comment_token)
-                        else:
-                            sequence.yaml_set_comment_before_after_key(item_index, before=comment_token)
+                        #if item_index == 0:
+                        #    logger.debug (f"417 comment token is: {comment_token}, and comment mark is {CommentMark(0)}")
+                        #    sequence.yaml_set_start_comment(comment_token)
+                        #else:
+                        #    sequence.yaml_set_comment_before_after_key(item_index, before=comment_token)
                     sequence.append(item_map)
                 pipeline_map[pipeline_key] = sequence
             if pipeline_map:
@@ -440,8 +445,9 @@ def build_yaml_structure(config_data: Dict[str, Any], logger: logging.Logger):
                         service_map[key] = value
                 root_map[top_level_key] = service_map
                 if '_comment' in service_data:
-                    comment_token = CommentToken(f"# {service_data['_comment']}\n", CommentMark(0))
-                    root_map.yaml_set_comment_before_after_key(top_level_key, before=comment_token)
+                    comment_token = CommentToken(f"# {service_data['_comment']}\n", '# ')
+                    logger.debug (f"445 comment_token value is {comment_token}, top level key is {top_level_key}")
+                    #root_map.yaml_set_comment_before_after_key(top_level_key, before=comment_token)
         elif top_level_key == 'upstream_servers':
             if top_level_key in config_data:
                 upstream_sequence = CommentedSeq()
