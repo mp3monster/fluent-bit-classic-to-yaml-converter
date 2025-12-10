@@ -223,11 +223,21 @@ def parse_config_lines(lines: List[str], logger: logging.Logger) -> Dict[str, An
         line_content = current_line.rstrip('\n')
         stripped_content = line_content.strip()
 
-        if not stripped_content or stripped_content.startswith('#'):
-            if stripped_content.startswith('#'):
+        #        if not stripped_content or stripped_content.startswith('#'):
+        if not stripped_content or stripped_content.find('#') > 0:         
+            cmt_index = stripped_content.find('#')
+            if cmt_index == 0:
                 pending_comments.append(stripped_content[1:].strip())
-            line_index += 1
-            continue
+                logger.debug ('line starts with comment')
+                line_index += 1
+                continue
+            else:
+                logger.debug (f'comment starts at {cmt_index}')
+                new_comment = stripped_content[cmt_index + 1 :].strip()
+                pending_comments.append(new_comment)
+                stripped_content = stripped_content[0:cmt_index]
+                line_content = line_content[0:cmt_index]
+                logger.debug (f'line contains comment, changed content to >{stripped_content}<, new comment >{new_comment}<')
 
         # Handle @SET for env
         if stripped_content.startswith('@SET'):
@@ -351,6 +361,13 @@ def apply_mappings_and_transformations(
                 if f'{old_key}_block' in service_item:
                     service_item[f'{new_key}_block'] = service_item.pop(f'{old_key}_block')
                 logger.debug(f"Service key: {old_key} -> {new_key}")
+            elif old_key == "_comment":
+                old_entry = service_item.pop(old_key)
+                logger.debug(f"got a comment -- {old_key} --> {old_entry}")
+                #new_key = '#'
+                #service_item[new_key] = old_entry
+            else:
+                logger.debug(f"ignoring -- {old_key}")                
 
         for target_key, transform_list in service_mappings.get('value_transformations', {}).items():
             if target_key in service_item and not service_item.get(f'{target_key}_block'):
@@ -376,14 +393,14 @@ def apply_mappings_and_transformations(
                     section_item[new_key] = section_item.pop(old_key)
                     if f'{old_key}_block' in section_item:
                         section_item[f'{new_key}_block'] = section_item.pop(f'{old_key}_block')
-                    logger.debug(f"{section_name}.{plugin_name}: {old_key} -> {new_key}")
+                    logger.debug(f"old key section/plugin name: {section_name}.{plugin_name}: {old_key} -> {new_key}")
 
             for target_key, transform_list in plugin_config.get('value_transformations', {}).items():
                 if target_key in section_item and not section_item.get(f'{target_key}_block'):
                     for transform_rule in transform_list:
                         old_value = section_item[target_key]
                         section_item[target_key] = apply_single_transform(old_value, transform_rule, logger)
-                        logger.debug(f"{section_name}.{plugin_name}: {target_key} '{old_value}' -> '{section_item[target_key]}'")
+                        logger.debug(f"new key section/plugin: {section_name}.{plugin_name}: {target_key} '{old_value}' -> '{section_item[target_key]}'")
 
 
 # === YAML Output ===
@@ -405,6 +422,7 @@ def build_yaml_structure(config_data: Dict[str, Any], logger: logging.Logger):
                     item_map = CommentedMap()
                     for key, value in item.items():
                         if key == '_comment':
+                            logger.debug ('build yaml - comment continue')
                             continue
                         if item.get(f'{key}_block'):
                             item_map[key] = LiteralScalarString(value + '\n')
