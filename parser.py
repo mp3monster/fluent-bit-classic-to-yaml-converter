@@ -211,121 +211,203 @@ def transform_section(properties_dict, plugin_mappings):
     return new_dict
 
 
-def list_key_value_pairs(config_parser, section_name, logger):
+def get_section_properties(config_parser, section_name):
     """
-    List key-value pairs for a given section name.
+    Get list of dictionaries of key-value pairs for a given section name.
 
     This function iterates through the sections in the ConfigParser,
     finds those matching the given section_name (including renumbered
-    duplicates), and logs the key-value pairs for each instance.
+    duplicates), and returns a list of dictionaries of the key-value pairs for each instance.
 
     Parameters:
     config_parser (configparser.ConfigParser): The parsed configuration object.
-    section_name (str): The name of the section to list pairs for.
-    logger (logging.Logger): The logger object for output.
+    section_name (str): The name of the section to get properties for.
 
     Returns:
-    None
+    list: List of dictionaries, each containing key-value pairs for one section instance.
     """
-    section_instance_count = 0
+    properties_list = []
     for unique_section in config_parser.sections():
         if unique_section == section_name or unique_section.startswith(
             section_name + "_"
         ):
-            section_instance_count += 1
-            logger.info(
-                f"Key-value pairs for section {section_name}"
-                + (f" #{section_instance_count}" if section_instance_count > 1 else "")
-                + ":"
-            )
+            prop_dict = {}
             section_options = config_parser.options(unique_section)
             if section_options:
                 for current_option in section_options:
                     current_value = config_parser.get(unique_section, current_option)
-                    if current_value is None:
-                        logger.info(f"  Key: {current_option}, Value: None")
-                    else:
-                        logger.info(f"  Key: {current_option}, Value: {current_value}")
-            else:
-                logger.info("  No key-value pairs found.")
+                    prop_dict[current_option] = current_value
+            properties_list.append(prop_dict)
+    return properties_list
 
 
-def generate_service_section():
+def generate_service_section(config_parser, mappings):
     """
-    Stub method to generate the 'service' section of the Fluent Bit YAML configuration.
+    Generate the 'service' section of the Fluent Bit YAML configuration.
+
+    Parameters:
+    config_parser (configparser.ConfigParser): The parsed configuration.
+    mappings (dict): The loaded mappings.
 
     Returns:
-    dict: A dictionary representing the service section skeleton.
+    dict: A dictionary representing the service section.
     """
-    return {}
+    prop_lists = get_section_properties(config_parser, "SERVICE")
+    if prop_lists:
+        plugin_mappings = get_plugin_mappings(mappings, "SERVICE", None)
+        transformed = transform_section(prop_lists[0], plugin_mappings)
+        return transformed
+    else:
+        return {}
 
 
-def generate_inputs_section():
+def generate_inputs_section(config_parser, mappings):
     """
-    Stub method to generate the 'inputs' section of the Fluent Bit YAML configuration.
+    Generate the 'inputs' section of the Fluent Bit YAML configuration.
+
+    Parameters:
+    config_parser (configparser.ConfigParser): The parsed configuration.
+    mappings (dict): The loaded mappings.
 
     Returns:
-    list: A list of dictionaries representing the inputs section skeleton.
+    list: A list of dictionaries representing the inputs.
     """
-    return []
+    prop_lists = get_section_properties(config_parser, "INPUT")
+    inputs = []
+    for prop_dict in prop_lists:
+        plugin_name = prop_dict.get("Name") or prop_dict.get("name")
+        plugin_mappings = get_plugin_mappings(mappings, "INPUT", plugin_name)
+        transformed = transform_section(prop_dict, plugin_mappings)
+        name = transformed.pop("name", transformed.pop("Name", None))
+        if name:
+            entry = {"name": name}
+            entry.update(transformed)
+            inputs.append(entry)
+    return inputs
 
 
-def generate_filters_section():
+def generate_filters_section(config_parser, mappings):
     """
-    Stub method to generate the 'filters' section of the Fluent Bit YAML configuration.
+    Generate the 'filters' section of the Fluent Bit YAML configuration.
+
+    Parameters:
+    config_parser (configparser.ConfigParser): The parsed configuration.
+    mappings (dict): The loaded mappings.
 
     Returns:
-    list: A list of dictionaries representing the filters section skeleton.
+    list: A list of dictionaries representing the filters.
     """
-    return []
+    prop_lists = get_section_properties(config_parser, "FILTER")
+    filters_list = []
+    for prop_dict in prop_lists:
+        plugin_name = prop_dict.get("Name") or prop_dict.get("name")
+        plugin_mappings = get_plugin_mappings(mappings, "FILTER", plugin_name)
+        transformed = transform_section(prop_dict, plugin_mappings)
+        name = transformed.pop("name", transformed.pop("Name", None))
+        if name:
+            entry = {"name": name}
+            entry.update(transformed)
+            filters_list.append(entry)
+    return filters_list
 
 
-def generate_outputs_section():
+def generate_outputs_section(config_parser, mappings):
     """
-    Stub method to generate the 'outputs' section of the Fluent Bit YAML configuration.
+    Generate the 'outputs' section of the Fluent Bit YAML configuration.
+
+    Parameters:
+    config_parser (configparser.ConfigParser): The parsed configuration.
+    mappings (dict): The loaded mappings.
 
     Returns:
-    list: A list of dictionaries representing the outputs section skeleton.
+    list: A list of dictionaries representing the outputs.
     """
-    return []
+    prop_lists = get_section_properties(config_parser, "OUTPUT")
+    outputs_list = []
+    for prop_dict in prop_lists:
+        plugin_name = prop_dict.get("Name") or prop_dict.get("name")
+        plugin_mappings = get_plugin_mappings(mappings, "OUTPUT", plugin_name)
+        transformed = transform_section(prop_dict, plugin_mappings)
+        name = transformed.pop("name", transformed.pop("Name", None))
+        if name:
+            entry = {"name": name}
+            entry.update(transformed)
+            outputs_list.append(entry)
+    return outputs_list
 
 
-def generate_parsers_section():
+def generate_parsers_section(config_parser, mappings):
     """
-    Stub method to generate the 'parsers' section of the Fluent Bit YAML configuration.
+    Generate the 'parsers' section of the Fluent Bit YAML configuration.
+
+    Parameters:
+    config_parser (configparser.ConfigParser): The parsed configuration.
+    mappings (dict): The loaded mappings.
 
     Returns:
-    list: A list of dictionaries representing the parsers section skeleton.
+    list: A list of dictionaries representing the parsers.
     """
-    return []
+    prop_lists = get_section_properties(config_parser, "PARSER")
+    parsers = []
+    for prop_dict in prop_lists:
+        plugin_name = prop_dict.get("Name") or prop_dict.get("name")
+        plugin_mappings = get_plugin_mappings(mappings, "PARSER", plugin_name)
+        transformed = transform_section(prop_dict, plugin_mappings)
+        name = transformed.pop("name", transformed.pop("Name", None))
+        if name:
+            entry = {"name": name}
+            entry.update(transformed)
+            parsers.append(entry)
+    return parsers
 
 
-def generate_multiline_parsers_section():
+def generate_multiline_parsers_section(config_parser, mappings):
     """
-    Stub method to generate the 'multiline_parsers' section of the Fluent Bit YAML configuration.
+    Generate the 'multiline_parsers' section of the Fluent Bit YAML configuration.
+
+    Parameters:
+    config_parser (configparser.ConfigParser): The parsed configuration.
+    mappings (dict): The loaded mappings.
 
     Returns:
-    list: A list of dictionaries representing the multiline_parsers section skeleton.
+    list: A list of dictionaries representing the multiline_parsers.
     """
-    return []
+    prop_lists = get_section_properties(config_parser, "MULTILINE_PARSER")
+    multiline_parsers = []
+    for prop_dict in prop_lists:
+        plugin_name = prop_dict.get("Name") or prop_dict.get("name")
+        plugin_mappings = get_plugin_mappings(mappings, "MULTILINE_PARSER", plugin_name)
+        transformed = transform_section(prop_dict, plugin_mappings)
+        name = transformed.pop("name", transformed.pop("Name", None))
+        if name:
+            entry = {"name": name}
+            entry.update(transformed)
+            multiline_parsers.append(entry)
+    return multiline_parsers
 
 
-def generate_yaml_skeleton():
+def generate_yaml_skeleton(config_parser, mappings):
     """
-    Construct a YAML skeleton for Fluent Bit configuration by calling stub methods for each section.
+    Construct a YAML skeleton for Fluent Bit configuration by calling methods for each section.
+
+    Parameters:
+    config_parser (configparser.ConfigParser): The parsed configuration.
+    mappings (dict): The loaded mappings.
 
     Returns:
-    str: The YAML string representing the skeleton configuration.
+    str: The YAML string representing the configuration.
     """
     skeleton = {
-        "service": generate_service_section(),
+        "service": generate_service_section(config_parser, mappings),
         "pipeline": {
-            "inputs": generate_inputs_section(),
-            "filters": generate_filters_section(),
-            "outputs": generate_outputs_section(),
+            "inputs": generate_inputs_section(config_parser, mappings),
+            "filters": generate_filters_section(config_parser, mappings),
+            "outputs": generate_outputs_section(config_parser, mappings),
         },
-        "parsers": generate_parsers_section(),
-        "multiline_parsers": generate_multiline_parsers_section(),
+        "parsers": generate_parsers_section(config_parser, mappings),
+        "multiline_parsers": generate_multiline_parsers_section(
+            config_parser, mappings
+        ),
     }
     return yaml.safe_dump(skeleton, sort_keys=False)
 
@@ -389,7 +471,23 @@ def main():
     # List key-value pairs for each unique section type
     unique_sections = sorted(set([name for name, _ in sections_list]))
     for unique_section in unique_sections:
-        list_key_value_pairs(config_parser, unique_section, logger)
+        prop_lists = get_section_properties(config_parser, unique_section)
+        count = 0
+        for prop_dict in prop_lists:
+            count += 1
+            logger.info(
+                f"Key-value pairs for section {unique_section}"
+                + (f" #{count}" if count > 1 else "")
+                + ":"
+            )
+            if prop_dict:
+                for key, value in prop_dict.items():
+                    if value is None:
+                        logger.info(f"  Key: {key}, Value: None")
+                    else:
+                        logger.info(f"  Key: {key}, Value: {value}")
+            else:
+                logger.info("  No key-value pairs found.")
 
     # Apply and list transformed sections
     logger.info("Transformed sections:")
@@ -424,9 +522,15 @@ def main():
             logger.info("  No properties.")
 
     # Generate and log YAML skeleton
-    yaml_skeleton = generate_yaml_skeleton()
-    logger.info("Generated YAML skeleton:")
-    logger.info(yaml_skeleton)
+    yaml_content = generate_yaml_skeleton(config_parser, mappings)
+    logger.info("Generated YAML:")
+    logger.info(yaml_content)
+
+    # Write YAML to file
+    output_filename = config_file_path + ".yaml"
+    with open(output_filename, "w") as file_handle:
+        file_handle.write(yaml_content)
+    logger.info(f"YAML configuration written to {output_filename}")
 
 
 if __name__ == "__main__":
