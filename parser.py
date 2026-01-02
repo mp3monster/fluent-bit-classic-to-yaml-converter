@@ -5,9 +5,11 @@ import logging
 import json
 import re
 import yaml
+import os
+import glob
 
 
-def load_config(config_file_path):
+def load_config(config_file_path, logger):
     """
     Load and parse a Fluent Bit classic configuration file.
 
@@ -18,6 +20,7 @@ def load_config(config_file_path):
 
     Parameters:
     config_file_path (str): The path to the Fluent Bit configuration file.
+    logger (logging.Logger): The logger object for output.
 
     Returns:
     tuple: A tuple containing the ConfigParser object and a list of section headings.
@@ -29,6 +32,10 @@ def load_config(config_file_path):
     # Read the original lines
     with open(config_file_path, "r") as file_handle:
         config_lines = file_handle.readlines()
+
+    # Process @INCLUDE directives
+    base_dir = os.path.dirname(config_file_path)
+    config_lines = process_includes(config_lines, base_dir, logger)
 
     # Preprocess lines to handle duplicate sections by renumbering them
     processed_lines = []
@@ -66,6 +73,45 @@ def load_config(config_file_path):
     config_parser.read_string("".join(processed_lines))
 
     return config_parser, sections_list
+
+
+def process_includes(config_lines, base_dir, logger):
+    """
+    Process @INCLUDE directives in the configuration lines.
+
+    Scans each line for @INCLUDE, replaces with contents of matching files,
+    and repeats until no more @INCLUDEs are found.
+
+    Parameters:
+    config_lines (list): List of configuration file lines.
+    base_dir (str): Base directory for relative include paths.
+    logger (logging.Logger): The logger object for error reporting.
+
+    Returns:
+    list: Expanded list of lines with includes resolved.
+    """
+    expanded_lines = config_lines[:]
+    while True:
+        has_include = False
+        new_lines = []
+        for line in expanded_lines:
+            stripped = line.strip()
+            if stripped.startswith("@INCLUDE"):
+                has_include = True
+                pattern = stripped[len("@INCLUDE") :].strip()
+                matching_files = glob.glob(os.path.join(base_dir, pattern))
+                for file_path in sorted(matching_files):
+                    try:
+                        with open(file_path, "r") as f:
+                            new_lines.extend(f.readlines())
+                    except Exception as e:
+                        logger.error(f"Failed to read include file {file_path}: {e}")
+            else:
+                new_lines.append(line)
+        expanded_lines = new_lines
+        if not has_include:
+            break
+    return expanded_lines
 
 
 def load_mappings(mappings_file_path):
@@ -443,7 +489,7 @@ def main():
     mappings_file_path = sys.argv[2]
 
     try:
-        config_parser, sections_list = load_config(config_file_path)
+        config_parser, sections_list = load_config(config_file_path, logger)
     except configparser.Error as error:
         logger.error(f"Error reading config file: {error}")
         sys.exit(1)
