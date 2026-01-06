@@ -1,0 +1,76 @@
+# expected.yaml
+env:
+  - name: ENV_VAR
+    value: test_value
+service:
+  flush_interval: '1'
+  log_level: info
+pipeline:
+  inputs:
+    - name: tail
+      path: /var/log/app.log
+      tag: app.logs
+      buffer_max_size: '5242880'
+      read_from_head: 'true'
+      parser: json
+    - name: cpu
+      tag: cpu.metrics
+      interval_seconds: '5'
+    - name: dummy
+      dummy: '{"message": "dummy log"}'
+      tag: dummy.logs
+      samples: '10'
+    - name: systemd
+      tag: host.*
+      path: /var/log/journal
+      read_from_tail: 'true'
+      db: /var/log/systemd.db
+    - name: fluentbit_metrics
+      tag: fb.metrics
+      scrape_interval: '2'
+      scrape_on_start: 'true'
+  filters:
+    - name: kubernetes
+      match: kube.*
+      merge_log: 'true'
+      kubernetes_parser: 'true'
+    - name: lua
+      match: '*'
+      function: cb_print
+      script: |-
+        function cb_print(tag, timestamp, record)
+            new_record = record
+            new_record["processed"] = "by Lua"
+            return 1, timestamp, new_record
+        end
+  parsers:
+    - name: json
+      format: json
+      timestamp_key: time
+      timestamp_format: %Y-%m-%dT%H:%M:%S %z
+  outputs:
+    - name: stdout
+      match: '*'
+    - name: elasticsearch
+      match: es.*
+      host: 192.168.1.100
+      port: '9200'
+      index: my_index
+      username: user
+      password: pass
+    - name: http
+      match: http.*
+      host: 192.168.1.101
+      port: '80'
+      uri: /logs
+      format: json
+      json_date_key: timestamp
+    - name: file
+      match: file.*
+      path: /var/log/fluentbit.out
+      format: csv
+    - name: null
+      match: null.*
+stream_processors:
+  - name: sql_processor
+    query: CREATE STREAM processed WITH(tag="processed.*") AS SELECT * FROM STREAM:fb.metrics WHERE cpu_p > 50;
