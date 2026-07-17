@@ -44,7 +44,7 @@ There are of course other ways to achieve this such as the pipenv tool.
 
 Simply use the pip command from the repo folder
 '''
-pip install -r requirements.tx
+pip install -r requirements.txt
 '''
 
 ## Mapping Configuration File
